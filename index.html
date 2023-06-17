@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+    <style>
+        .mol-container {
+            width: 60%;
+            height: 400px;
+            position: relative;
+        }
+    </style>
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="container-01" class="mol-container"></div>
+    <img id="preview" />
+    <script>
+        let element = document.querySelector('#container-01');
+        // const canvas = document.getElementById("canvas");
+        let config = { backgroundColor: 'lightgray' };
+        let viewer = $3Dmol.createViewer(element, config);
+        let v = viewer;
+        // all fetch is done by GPT
+        async function go() {
+            fetch('http://127.0.0.1:8000/all_images')
+                .then(response => response.json())
+                .then(data => {
+                    // Assuming the data received is an array of image URLs
+                    const imageList = data;
+
+                    imageList.forEach(filename => {
+                        const imageUrl = `http://127.0.0.1:8000/get_SDF?filename=${filename}`;
+
+                        // Fetch the individual image
+                        fetch(imageUrl)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data) {
+                                    // Image was successfully fetched
+                                    for (let i = -20; i <= 20; i += 5) {
+                                        v.clear()
+                                        console.log(data)
+                                        v.addModel(data, "sdf");                       /* load data */
+                                        v.setStyle({ "stick": { "radius": 0.15, "color": "gray" }, "sphere": { "scale": 0.3, "colorscheme": "blackCarbon" } })  /* style all atoms */
+                                        // viewer.rotate(i, {
+                                        //     x: Math.random(),
+                                        //     y: Math.random(),
+                                        //     z: Math.random()
+                                        // });
+                                        // v.rotate(5000, "y") //GPT says 5000 is the time but it is the angle, but idk why this will make it facing us 
+                                        viewer.rotate(i, "y")
+                                        viewer.rotate(i*0.1, "z")
+                                            // x: Math.random(),
+                                            // y: Math.random(),
+                                            // z: Math.random()
+                                        // });
+                                        v.zoomTo();
+                                        v.zoom(1 - Math.random() * 0.3)                                      /* set camera */
+                                        v.render();                                      /* render scene */
+                                        // console.log(console.log(document.getElementsByTagName("canvas")[0].toDataURL()))
+                                        fetch('http://127.0.0.1:8000/save_image', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({
+                                                "base64": document.getElementsByTagName("canvas")[0].toDataURL(),
+                                                // "name": "filename" + i + ".png"
+                                                "name": filename + i + ".png"
+
+                                            })
+                                        })
+                                            .then(response => {
+                                                if (response.ok) {
+                                                    console.log('Image saved successfully.');
+                                                } else {
+                                                    console.error('Error saving image.');
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error('Error:', error);
+                                            });
+                                    }
+                                } else {
+                                    // Error fetching the image
+                                    console.error(`Failed to fetch ${filename}`);
+                                }
+                            })
+                            .catch(error => {
+                                console.error(`Error fetching ${filename}:`, error);
+                            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+        }
+
+        go();
+
+    </script>
+</body>
+
+</html>
