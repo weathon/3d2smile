@@ -39,17 +39,17 @@ async def save_image(img: ImagePOST):
     image = Image.open(file)
     
     # Save image as PNG
-    image.save(f"../pngs/{filename}.png", "PNG")
+    # image.save(f"../pngs/{filename}.png", "PNG")
     
     return {"message": "Image saved successfully."}
 
 @app.get("/all_images")
 def images():
-    return os.listdir("SDFs")
+    return os.listdir("SDFs")[:100]
 
 
 @app.get("/get_SDF")
 def sdf(filename):
     time.sleep(0.2)
     with open("SDFs/"+filename,"r") as f:
-        return f.read()
+        return f.read() 

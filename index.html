@@ -32,28 +32,29 @@
                     // Assuming the data received is an array of image URLs
                     const imageList = data;
 
-                    imageList.forEach(filename => {
+                    imageList.forEach(async function(filename) {
                         const imageUrl = `http://127.0.0.1:8000/get_SDF?filename=${filename}`;
 
                         // Fetch the individual image
-                        fetch(imageUrl)
+                        await fetch(imageUrl)
                             .then(response => response.json())
-                            .then(data => {
+                            .then(async function(data) {
                                 if (data) {
                                     // Image was successfully fetched
                                     for (let i = -20; i <= 20; i += 5) {
                                         v.clear()
                                         console.log(data)
                                         v.addModel(data, "sdf");                       /* load data */
-                                        v.setStyle({ "stick": { "radius": 0.15, "color": "gray" }, "sphere": { "scale": 0.3, "colorscheme": "blackCarbon" } })  /* style all atoms */
+                                        v.setStyle({ "stick": { "radius": 0.15, "color": "gray" }, "sphere": { "scale": 0.2, "colorscheme": "" } })  /* style all atoms */
                                         // viewer.rotate(i, {
                                         //     x: Math.random(),
                                         //     y: Math.random(),
                                         //     z: Math.random()
                                         // });
                                         // v.rotate(5000, "y") //GPT says 5000 is the time but it is the angle, but idk why this will make it facing us 
-                                        viewer.rotate(i, "y")
-                                        viewer.rotate(i*0.1, "z")
+                                        viewer.rotate(i, "z")
+                                        viewer.rotate(i*0.25, "x")
+                                        viewer.rotate(i*0.25, "y")
                                             // x: Math.random(),
                                             // y: Math.random(),
                                             // z: Math.random()
@@ -62,7 +63,7 @@
                                         v.zoom(1 - Math.random() * 0.3)                                      /* set camera */
                                         v.render();                                      /* render scene */
                                         // console.log(console.log(document.getElementsByTagName("canvas")[0].toDataURL()))
-                                        fetch('http://127.0.0.1:8000/save_image', {
+                                        await fetch('http://127.0.0.1:8000/save_image', {
                                             method: 'POST',
                                             headers: {
                                                 'Content-Type': 'application/json'
