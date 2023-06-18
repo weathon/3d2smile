@@ -45,7 +45,9 @@
                                         v.clear()
                                         console.log(data)
                                         v.addModel(data, "sdf");                       /* load data */
-                                        v.setStyle({ "stick": { "radius": 0.15, "color": "gray" }, "sphere": { "scale": 0.2, "colorscheme": "" } })  /* style all atoms */
+                                        v.setStyle({ "stick": { "radius": 0.15, "color": "gray" }, "sphere": { "scale": 0.2, "colorscheme": "" } }, {atom: "C"}, {"sphere": { "scale": 0.2, "color": "red" }})  /* style all atoms */
+                                        // v.setStyle(); //finally works, how? idk docs and gpt
+                                        // v.setStyle({'prop': 'C', map:"greenCarbon"});
                                         // viewer.rotate(i, {
                                         //     x: Math.random(),
                                         //     y: Math.random(),
