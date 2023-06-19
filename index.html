@@ -30,12 +30,15 @@
         async function go() {
             fetch('http://127.0.0.1:8000/all_images')
                 .then(response => response.json())
-                .then(data => {
+                .then(async function(data) { //forgot await here
                     // Assuming the data received is an array of image URLs
                     const imageList = data;
                     let done = 0;
                     let all = imageList.length;
-                    imageList.forEach(async function (filename) {
+                    // imageList.forEach(async function (filename) {
+                    for(let _=0; _<imageList.length; _++)
+                    {
+                        filename = imageList[_]
                         const imageUrl = `http://127.0.0.1:8000/get_SDF?filename=${filename}`;
                         done+=1;
                         document.getElementById("progress").innerText=done + "/" + String(all)
@@ -119,7 +122,7 @@
                             .catch(error => {
                                 console.error(`Error fetching ${filename}:`, error);
                             });
-                    });
+                    };
                 })
                 .catch(error => {
                     console.error('Error:', error);
