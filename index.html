@@ -26,7 +26,6 @@
         let viewer = $3Dmol.createViewer(element, config);
         let v = viewer;
         // all fetch is done by GPT
-
         async function go() {
             fetch('http://127.0.0.1:8000/all_images')
                 .then(response => response.json())
@@ -43,9 +42,10 @@
                         done+=1;
                         document.getElementById("progress").innerText=done + "/" + String(all)
                         // Fetch the individual image
-                        await fetch(imageUrl)
-                            .then(response => response.json())
-                            .then(async function (data) {
+                        let data = await (await fetch(imageUrl)).json()
+                            // .then(response => response.json()) //this also need await
+                            // .then(async function (data) 
+                            
                                 if (data) {
                                     // Image was successfully fetched
                                     for (let i = -20; i <= 20; i += 5) {
@@ -118,10 +118,7 @@
                                     // Error fetching the image
                                     console.error(`Failed to fetch ${filename}`);
                                 }
-                            })
-                            .catch(error => {
-                                console.error(`Error fetching ${filename}:`, error);
-                            });
+                           
                     };
                 })
                 .catch(error => {
