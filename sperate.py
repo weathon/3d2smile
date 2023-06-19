@@ -1,8 +1,11 @@
 # From GPT's guide
 from rdkit import Chem
 from rdkit.Chem import SDWriter
-suppl = Chem.SDMolSupplier("PubChem_compound_cache_LWqKZnPPFnMhWRRAljhdauJMfSxpD3VjD0ZuLxRXfC4UTkA_records.new.sdf")
+suppl = Chem.SDMolSupplier("main.sdf")
 
 for mol in suppl:
-    writer = SDWriter(f"{mol.GetProp('_Name')}.sdf")
+    if len(Chem.GetMolFrags(mol)) != 1:
+        print(len(Chem.GetMolFrags(mol)))
+        continue
+    writer = SDWriter(f"SDFs/{mol.GetProp('_Name')}.sdf")
     writer.write(mol)
