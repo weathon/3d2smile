@@ -45,7 +45,22 @@
                                         v.clear()
                                         console.log(data)
                                         v.addModel(data, "sdf");                       /* load data */
-                                        v.setStyle({ "stick": { "radius": 0.15, "color": "gray" }, "sphere": { "scale": 0.2, "colorscheme": "" } }, {atom: "C"}, {"sphere": { "scale": 0.2, "color": "red" }})  /* style all atoms */
+                                        v.setStyle({ "stick": { "radius": 0.15, "color": "gray" }, "sphere": { "scale": 0.2, "colorfunc":(atom)=>{
+                                            console.log(atom);
+                                            // return "#000000"
+                                            // https://en.wikipedia.org/wiki/CPK_coloring
+                                            let color = {
+                                                "C":"#505050",
+                                                "H":"#FEFEFE",
+                                                "N" :"#87CEEB",
+                                                "O" : "#FE0000",
+                                                "Cl" : "#00FE00",
+                                                "Br" : "darkred",
+                                                "I" : "darkpurple",
+                                                "S" : "yellow"
+                                            }[atom.elem];
+                                            return color ? color : "pink";
+                                        }} })  /* style all atoms */
                                         // v.setStyle(); //finally works, how? idk docs and gpt
                                         // v.setStyle({'prop': 'C', map:"greenCarbon"});
                                         // viewer.rotate(i, {
