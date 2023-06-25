@@ -179,8 +179,10 @@ add_color_schema("O", (1, 0, 0, 1))
 add_color_schema("S", (1, 0.5, 0.5, 1))
 add_color_schema("H", (0.9,0.9,0.9, 1))
 add_color_schema("N", (0,0.1,0.9, 1))
+add_color_schema("Cl", (0.1,0.9,0.1, 1))
+add_color_schema("Br", (0.7,0.3,0.3,1))
 
-mapping = {6:"C",8:"O",1:"H",7:"N"}
+mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br"}
 
 bpy.ops.scene.new()
 add_camera()
@@ -219,7 +221,7 @@ for i in range(len(data["bonds"]["aid1"])):
 for i in range(len(data["coords"][0]["conformers"][0]["x"])):
     if data["atoms"]["aid"][i] in removed_hydrogen_ids:
         continue 
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.2, location=(data["coords"][0]["conformers"][0]["x"][i],
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.13 if (i+1) in hydrogen_ids else 0.2, location=(data["coords"][0]["conformers"][0]["x"][i],
     data["coords"][0]["conformers"][0]["y"][i],0))
     set_meterial(mapping[data["atoms"]["element"][i]])
 
