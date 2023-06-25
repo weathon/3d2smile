@@ -37,9 +37,9 @@ def add_camera():
     camera = bpy.context.object
     camera.rotation_euler = (0, 0, 0)  # Rotates the camera to face downward, GPT said 1.7 i said 0
 
-    # Set the active camera
+    bpy.context.scene.render.resolution_x = 1000
+    bpy.context.scene.render.resolution_y = 1000
     bpy.context.scene.camera = camera
-
 def set_background_color():
     # GPT generated
     # Set the background color of the world
@@ -171,16 +171,16 @@ def get_cord_by_aid(aid):
     return ans 
 
 clear_all_materials()
-bpy.context.scene.render.resolution_x = 600  # Width  GPT
-bpy.context.scene.render.resolution_y = 600 # Height  GPT
+
 
 
 add_color_schema("C", (0.2,0.2,0.2,1))
 add_color_schema("O", (1, 0, 0, 1))
 add_color_schema("S", (1, 0.5, 0.5, 1))
 add_color_schema("H", (0.9,0.9,0.9, 1))
+add_color_schema("N", (0,0.1,0.9, 1))
 
-mapping = {6:"C",8:"O",1:"H"}
+mapping = {6:"C",8:"O",1:"H",7:"N"}
 
 bpy.ops.scene.new()
 add_camera()
@@ -224,8 +224,7 @@ for i in range(len(data["coords"][0]["conformers"][0]["x"])):
     set_meterial(mapping[data["atoms"]["element"][i]])
 
 
-
-    
+ 
 zoom_camera_to_fit() 
-random_rotate_camera()
+
 #render_scene("/home/wg25r/test.png")
