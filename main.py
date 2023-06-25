@@ -170,8 +170,34 @@ def get_cord_by_aid(aid):
     print(ans)
     return ans 
 
+import numpy as np
+# Creat semi ring is too hard, let's make a flatten one 
+def add_double_bonds(p1, p2):
+    # semi gpt, gpt only did the API
+    bpy.ops.object.mode_set(mode='OBJECT')
+    p1 = np.array(p1)
+    p2 = np.array(p2)
+    dis = np.sqrt(np.sum((p1-p2)**2))
+    print("mid",(p1+p2)/2)
+    obj = bpy.ops.mesh.primitive_torus_add(
+        align='WORLD',
+        location= (p1+p2)/2, #midpoint
+        rotation=(0,0,0),  # Set the rotation of the torus
+        major_radius=dis/2,    # This is radius, so /2
+        minor_radius= 0.05     # Set the minor radius of the torus
+    )# GPT
+    obj = bpy.context.object
+    obj.scale.x = 0.4
+    tri = p2 - p1
+    obj.rotation_euler = (0, 3.1415/2, np.arcsin(tri[0]/dis)) # np.arcsin(tri[0]/dis) should be the last not second
+    
+def draw_bonds(p1, p2, order):
+    if order == 2:
+        add_double_bonds(p1, p2)
+    else:
+        connect_points_with_cylinder(p1, p2, 0.2)
+        
 clear_all_materials()
-
 
 
 add_color_schema("C", (0.2,0.2,0.2,1))
@@ -180,53 +206,70 @@ add_color_schema("S", (1, 0.5, 0.5, 1))
 add_color_schema("H", (0.9,0.9,0.9, 1))
 add_color_schema("N", (0,0.1,0.9, 1))
 add_color_schema("Cl", (0.1,0.9,0.1, 1))
-add_color_schema("Br", (0.7,0.3,0.3,1))
+add_color_schema("Br", (0.6,0.3,0.1,1)) #guessed
 
 mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br"}
 
-bpy.ops.scene.new()
-add_camera()
+
 
 with open("/home/wg25r/set2SMILE/collect_images/demo.json","r") as f:
-    data = json.load(f)
+    data_all = json.load(f)
 
-carbon_ids = []
-hydrogen_ids = []
-for index, item in enumerate(data["atoms"]["element"]):
-    if item == 6:
-        carbon_ids.append(index+1)
-    if item == 1:
-        hydrogen_ids.append(index+1)
-               
-removed_hydrogen_ids = []
-for i in range(len(data["bonds"]["aid1"])):
-    if data["bonds"]["aid1"][i] in carbon_ids:
-        if data["bonds"]["aid2"][i] in hydrogen_ids:
-            removed_hydrogen_ids.append(data["bonds"]["aid2"][i])
+for data in data_all:
+#    for i in mapping.keys():
+#        if not i in data["atoms"]["element"]:
+#            print("Not interested")
+#            continue
+    bpy.ops.scene.new()
+    add_camera()
+    cont = 0
+    
+
+    for i in data["atoms"]["element"]:
+        if not i in mapping.keys():
+            print("Not interested")
+            cont = 1
+            break 
+    if cont:
+        continue
+        
+    carbon_ids = []
+    hydrogen_ids = []
+    for index, item in enumerate(data["atoms"]["element"]):
+        if item == 6:
+            carbon_ids.append(index+1)
+        if item == 1:
+            hydrogen_ids.append(index+1)
+                   
+    removed_hydrogen_ids = []
+    for i in range(len(data["bonds"]["aid1"])):
+        if data["bonds"]["aid1"][i] in carbon_ids:
+            if data["bonds"]["aid2"][i] in hydrogen_ids:
+                removed_hydrogen_ids.append(data["bonds"]["aid2"][i])
+            else:
+                draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
+                                            get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
+                
+                
+        elif data["bonds"]["aid2"][i] in carbon_ids:
+            if data["bonds"]["aid1"][i] in hydrogen_ids:
+                removed_hydrogen_ids.append(data["bonds"]["aid1"][i])
+            else:
+                draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
+                                            get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
         else:
-            connect_points_with_cylinder(get_cord_by_aid(data["bonds"]["aid1"][i]), 
-                                        get_cord_by_aid(data["bonds"]["aid2"][i]), 0.2)
-            
-            
-    elif data["bonds"]["aid2"][i] in carbon_ids:
-        if data["bonds"]["aid1"][i] in hydrogen_ids:
-            removed_hydrogen_ids.append(data["bonds"]["aid1"][i])
-        else:
-            connect_points_with_cylinder(get_cord_by_aid(data["bonds"]["aid1"][i]),
-                                        get_cord_by_aid(data["bonds"]["aid2"][i]), 0.2)
-    else:
-            connect_points_with_cylinder(get_cord_by_aid(data["bonds"]["aid1"][i]),
-                                        get_cord_by_aid(data["bonds"]["aid2"][i]), 0.2)  
-                                        
-for i in range(len(data["coords"][0]["conformers"][0]["x"])):
-    if data["atoms"]["aid"][i] in removed_hydrogen_ids:
-        continue 
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.13 if (i+1) in hydrogen_ids else 0.2, location=(data["coords"][0]["conformers"][0]["x"][i],
-    data["coords"][0]["conformers"][0]["y"][i],0))
-    set_meterial(mapping[data["atoms"]["element"][i]])
+                draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
+                                            get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])  
+                                            
+    for i in range(len(data["coords"][0]["conformers"][0]["x"])):
+        if data["atoms"]["aid"][i] in removed_hydrogen_ids:
+            continue 
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.13 if (i+1) in hydrogen_ids else 0.2, location=(data["coords"][0]["conformers"][0]["x"][i],
+        data["coords"][0]["conformers"][0]["y"][i],0))
+        set_meterial(mapping[data["atoms"]["element"][i]])
 
 
- 
-zoom_camera_to_fit() 
+     
+    zoom_camera_to_fit() 
 
-#render_scene("/home/wg25r/test.png")
+    #render_scene("/home/wg25r/test.png")
