@@ -47,7 +47,17 @@ def set_background_color():
     world.use_nodes = False  # Disable node-based world
     world.color = (100, 100, 100)  # Set background color to black
     
+def set_smooth_shading():
+    # Switch to the "Solid" viewport shading mode
+#    bpy.context.space_data.shading.type = 'SOLID'
 
+    # Enable smooth shading for all objects
+    for obj in bpy.context.scene.objects:
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.shade_smooth()
+        obj.select_set(False)
+        
 def render_scene(output_filepath):
     # GPT generated
     # Set the output filepath and format
@@ -287,6 +297,7 @@ for data in data_all:
 
      
     zoom_camera_to_fit() 
+    set_smooth_shading()
     for deg in range(-30,30,10):
         rotate_model(np.radians(deg))
         render_scene(f"/home/wg25r/{data['id']['id']['cid']}_{deg}.png")
