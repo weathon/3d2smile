@@ -192,7 +192,7 @@ def get_cord_by_aid(aid):
     #print(data["coords"][0]["conformers"][0]["x"][aid-1])
 #    c = data["coords"][0]["conformers"][0]
     ans = data["coords"][0]["conformers"][0]["x"][aid-1], data["coords"][0]["conformers"][0]["y"][aid-1], 0
-    print(ans)
+    # print(ans)
     return ans 
 
 import numpy as np
@@ -203,20 +203,25 @@ def add_double_bonds(p1, p2):
     p1 = np.array(p1)
     p2 = np.array(p2)
     dis = np.sqrt(np.sum((p1-p2)**2))
-    print("mid",(p1+p2)/2)
+    # print("mid",(p1+p2)/2)
+    tri = p2 - p1
+
     obj = bpy.ops.mesh.primitive_torus_add(
         align='WORLD',
         location= (p1+p2)/2, #midpoint
-        rotation=(0,0,0),  # Set the rotation of the torus
+        # rotation=(0,0,np.arcsin(np.abs(tri[0])/dis)),  # Set the rotation of the torus  found the bug it could be the otehr way, use tah
+        rotation=(0,3.1415926/2,-np.arctan(np.divide(tri[0],tri[1]))),
         major_radius=dis/2,    # This is radius, so /2
         minor_radius= 0.05     # Set the minor radius of the torus
     )# GPT
     obj = bpy.context.object
-    obj.scale.x = 0.7
-    tri = p2 - p1
-    obj.rotation_euler = (0, 3.1415/2, np.arcsin(tri[0]/dis)) # np.arcsin(tri[0]/dis) should be the last not second
+    obj.scale.x = 0.4
+    # obj.rotation_euler = (0, 3.1415/2, 0)
+    # obj.rotation_euler = (0, 0, np.arccos(tri[1]/dis))
+    # np.arcsin(tri[0]/dis) should be the last not first
+    # really? if last some will work will some will craash, changed to arscos and tri 1 and put first and all working
     
-def draw_bonds(p1, p2, order):
+def draw_bonds(p1, p2, order):  
     if order == 2:
         add_double_bonds(p1, p2)
         
@@ -238,8 +243,8 @@ mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br"}
 
 
 
-with open("/home/wg25r/set2SMILE/collect_images/demo.json","r") as f:
-    data_all = json.load(f)
+with open("/home/wg25r/small.json","r") as f:
+    data_all = json.load(f)["PC_Compounds"]
 
 for data in data_all:
 #    for i in mapping.keys():
@@ -268,10 +273,12 @@ for data in data_all:
             hydrogen_ids.append(index+1)
                    
     removed_hydrogen_ids = []
+    # some remove H some do not? or save both copy of each? 
     for i in range(len(data["bonds"]["aid1"])):
         if data["bonds"]["aid1"][i] in carbon_ids:
             if data["bonds"]["aid2"][i] in hydrogen_ids:
                 removed_hydrogen_ids.append(data["bonds"]["aid2"][i])
+                # pass
             else:
                 draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
                                             get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
@@ -280,6 +287,7 @@ for data in data_all:
         elif data["bonds"]["aid2"][i] in carbon_ids:
             if data["bonds"]["aid1"][i] in hydrogen_ids:
                 removed_hydrogen_ids.append(data["bonds"]["aid1"][i])
+                # pass
             else:
                 draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
                                             get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
@@ -298,6 +306,6 @@ for data in data_all:
      
     zoom_camera_to_fit() 
     set_smooth_shading()
-    for deg in range(-30,30,10):
-        rotate_model(np.radians(deg))
-        render_scene(f"/home/wg25r/{data['id']['id']['cid']}_{deg}.png")
+    for deg in range(-30,30,60):
+        rotate_model(np.radians(13))
+        render_scene(f"/home/wg25r/rendered/{data['id']['id']['cid']}_{deg}.png")
