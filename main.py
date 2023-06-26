@@ -306,6 +306,6 @@ for data in data_all:
      
     zoom_camera_to_fit() 
     set_smooth_shading()
-    for deg in range(-30,30,60):
+    for deg in range(5):
         rotate_model(np.radians(13))
         render_scene(f"/home/wg25r/rendered/{data['id']['id']['cid']}_{deg}.png")
