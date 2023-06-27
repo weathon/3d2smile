@@ -37,8 +37,8 @@ def add_camera():
     camera = bpy.context.object
     camera.rotation_euler = (0, 0, 0)  # Rotates the camera to face downward, GPT said 1.7 i said 0
 
-    bpy.context.scene.render.resolution_x = 1000
-    bpy.context.scene.render.resolution_y = 1000
+    bpy.context.scene.render.resolution_x = 400
+    bpy.context.scene.render.resolution_y = 400
     bpy.context.scene.camera = camera
 def set_background_color():
     # GPT generated
@@ -63,7 +63,7 @@ def render_scene(output_filepath):
     # Set the output filepath and format
     bpy.context.scene.render.engine = "BLENDER_WORKBENCH"
     bpy.context.scene.render.filepath = output_filepath
-    bpy.context.scene.render.image_settings.file_format = 'PNG'
+    bpy.context.scene.render.image_settings.file_format = 'JPEG'
 
     # Render the scene
     bpy.ops.render.render(write_still=True)
@@ -96,7 +96,7 @@ def zoom_camera_to_fit():
     bpy.ops.view3d.camera_to_view_selected()
     
     camera = bpy.context.object
-    camera.location += mathutils.Vector((0, 0, 1)) #changed from -1 to 1
+    camera.location += mathutils.Vector((0, 0, 1.3)) #changed from -1 to 1
 
 def add_color_schema(name, color):
     # semi-GPT
@@ -210,7 +210,7 @@ def add_double_bonds(p1, p2):
         align='WORLD',
         location= (p1+p2)/2, #midpoint
         # rotation=(0,0,np.arcsin(np.abs(tri[0])/dis)),  # Set the rotation of the torus  found the bug it could be the otehr way, use tah
-        rotation=(0,3.1415926/2,-np.arctan(np.divide(tri[0],tri[1]))),
+        rotation=(0,3.1415926/2-1,-np.arctan(np.divide(tri[0],tri[1]))),
         major_radius=dis/2,    # This is radius, so /2
         minor_radius= 0.05     # Set the minor radius of the torus
     )# GPT
@@ -246,7 +246,12 @@ mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br"}
 with open("/home/wg25r/small.json","r") as f:
     data_all = json.load(f)["PC_Compounds"]
 
+reach_break_point = 1 
 for data in data_all:
+    if data["id"]["id"]["cid"] == 6912:
+        reach_break_point = 1
+    if not reach_break_point:
+        continue
 #    for i in mapping.keys():
 #        if not i in data["atoms"]["element"]:
 #            print("Not interested")
@@ -274,27 +279,31 @@ for data in data_all:
                    
     removed_hydrogen_ids = []
     # some remove H some do not? or save both copy of each? 
-    for i in range(len(data["bonds"]["aid1"])):
-        if data["bonds"]["aid1"][i] in carbon_ids:
-            if data["bonds"]["aid2"][i] in hydrogen_ids:
-                removed_hydrogen_ids.append(data["bonds"]["aid2"][i])
-                # pass
+    if 0: 
+        for i in range(len(data["bonds"]["aid1"])):
+            if data["bonds"]["aid1"][i] in carbon_ids:
+                if data["bonds"]["aid2"][i] in hydrogen_ids:
+                    removed_hydrogen_ids.append(data["bonds"]["aid2"][i])
+                    # pass
+                else:
+                    draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
+                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
+                    
+                    
+            elif data["bonds"]["aid2"][i] in carbon_ids:
+                if data["bonds"]["aid1"][i] in hydrogen_ids:
+                    removed_hydrogen_ids.append(data["bonds"]["aid1"][i])
+                    # pass
+                else:
+                    draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
+                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
             else:
-                draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
-                                            get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
-                
-                
-        elif data["bonds"]["aid2"][i] in carbon_ids:
-            if data["bonds"]["aid1"][i] in hydrogen_ids:
-                removed_hydrogen_ids.append(data["bonds"]["aid1"][i])
-                # pass
-            else:
-                draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
-                                            get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
-        else:
-                draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
-                                            get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])  
-                                            
+                    draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
+                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])  
+    else:
+        for i in range(len(data["bonds"]["aid1"])):
+            draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
+                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])                                               
     for i in range(len(data["coords"][0]["conformers"][0]["x"])):
         if data["atoms"]["aid"][i] in removed_hydrogen_ids:
             continue 
@@ -306,6 +315,6 @@ for data in data_all:
      
     zoom_camera_to_fit() 
     set_smooth_shading()
-    for deg in range(5):
-        rotate_model(np.radians(13))
-        render_scene(f"/home/wg25r/rendered/{data['id']['id']['cid']}_{deg}.png")
+    for deg in range(4):
+        rotate_model(np.radians(8))
+        render_scene(f"/home/wg25r/rendered/{data['id']['id']['cid']}_{deg}.jpg")
