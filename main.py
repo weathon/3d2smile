@@ -256,7 +256,12 @@ for data in data_all:
 #        if not i in data["atoms"]["element"]:
 #            print("Not interested")
 #            continue
-    bpy.ops.scene.new()
+    # bpy.ops.scene.new()
+
+    # https://sharegpt.com/c/ASEyKG1
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+
     add_camera()
     cont = 0
     
