@@ -239,7 +239,7 @@ add_color_schema("N", (0,0.1,0.9, 1))
 add_color_schema("Cl", (0.1,0.9,0.1, 1))
 add_color_schema("Br", (0.6,0.3,0.1,1)) #guessed
 
-mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br"}
+mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br",16:"S"}
 
 
 
