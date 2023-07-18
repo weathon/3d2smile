@@ -238,8 +238,8 @@ add_color_schema("H", (0.9,0.9,0.9, 1))
 add_color_schema("N", (0,0.1,0.9, 1))
 add_color_schema("Cl", (0.1,0.9,0.1, 1))
 add_color_schema("Br", (0.5,0.2,0.08,1)) #guessed
-add_color_schema("F", (1, 0.271, 0)) 
-add_color_schema("P", (0.502, 0, 0.502))
+add_color_schema("F", (1, 0.271, 0, 1)) 
+add_color_schema("P", (0.502, 0, 0.502, 1))
 
 mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br",16:"S",9:"F",15:"P"} #forgot S
 
