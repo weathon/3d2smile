@@ -248,10 +248,16 @@ mapping = {6:"C",8:"O",1:"H",7:"N",17:"Cl",35:"Br",16:"S",9:"F",15:"P"} #forgot 
 with open("/home/wg25r/small.json","r") as f:
     data_all = json.load(f)["PC_Compounds"]
 
+import os 
+done = os.listdir("/home/wg25r/rendered")
+print(len(done))
+done = [i.split("_")[0] for i in done]
+done = set(done)
 reach_break_point = 1 
 for data in data_all:
-    if data["id"]["id"]["cid"] == 6912:
-        reach_break_point = 1
+    if data["id"]["id"]["cid"] in done:
+        print("did before")
+        continue
     if not reach_break_point:
         continue
 #    for i in mapping.keys():
