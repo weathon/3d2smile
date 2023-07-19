@@ -253,7 +253,7 @@ import os
 done = os.listdir("/home/wg25r/rendered")
 print("START!")
 print(len(done))
-done = [i.split("_")[0] for i in done]
+done = [int(i.split("_")[0]) for i in done]
 done = set(done)
 print(done)
 reach_break_point = 1 
