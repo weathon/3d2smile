@@ -250,84 +250,88 @@ with open("/home/wg25r/small.json","r") as f:
 
 import os 
 done = os.listdir("/home/wg25r/rendered")
+print("START!")
 print(len(done))
 done = [i.split("_")[0] for i in done]
 done = set(done)
 reach_break_point = 1 
 for data in data_all:
-    if data["id"]["id"]["cid"] in done:
-        print("did before")
-        continue
-    if not reach_break_point:
-        continue
-#    for i in mapping.keys():
-#        if not i in data["atoms"]["element"]:
-#            print("Not interested")
-#            continue
-    # bpy.ops.scene.new()
-
-    # https://sharegpt.com/c/ASEyKG1
-    bpy.ops.object.select_all(action='SELECT')
-    bpy.ops.object.delete(use_global=False)
-
-    add_camera()
-    cont = 0
+    try:
+        if data["id"]["id"]["cid"] in done:
+            print("did before")
+            continue
+        if not reach_break_point:
+            continue
+    #    for i in mapping.keys():
+    #        if not i in data["atoms"]["element"]:
+    #            print("Not interested")
+    #            continue
+        # bpy.ops.scene.new()
     
-
-    for i in data["atoms"]["element"]:
-        if not i in mapping.keys():
-            print("Not interested")
-            cont = 1
-            break 
-    if cont:
-        continue
+        # https://sharegpt.com/c/ASEyKG1
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.delete(use_global=False)
+    
+        add_camera()
+        cont = 0
         
-    carbon_ids = []
-    hydrogen_ids = []
-    for index, item in enumerate(data["atoms"]["element"]):
-        if item == 6:
-            carbon_ids.append(index+1)
-        if item == 1:
-            hydrogen_ids.append(index+1)
-                   
-    removed_hydrogen_ids = []
-    # some remove H some do not? or save both copy of each? 
-    if 0: 
-        for i in range(len(data["bonds"]["aid1"])):
-            if data["bonds"]["aid1"][i] in carbon_ids:
-                if data["bonds"]["aid2"][i] in hydrogen_ids:
-                    removed_hydrogen_ids.append(data["bonds"]["aid2"][i])
-                    # pass
+    
+        for i in data["atoms"]["element"]:
+            if not i in mapping.keys():
+                print("Not interested")
+                cont = 1
+                break 
+        if cont:
+            continue
+            
+        carbon_ids = []
+        hydrogen_ids = []
+        for index, item in enumerate(data["atoms"]["element"]):
+            if item == 6:
+                carbon_ids.append(index+1)
+            if item == 1:
+                hydrogen_ids.append(index+1)
+                       
+        removed_hydrogen_ids = []
+        # some remove H some do not? or save both copy of each? 
+        if 0: 
+            for i in range(len(data["bonds"]["aid1"])):
+                if data["bonds"]["aid1"][i] in carbon_ids:
+                    if data["bonds"]["aid2"][i] in hydrogen_ids:
+                        removed_hydrogen_ids.append(data["bonds"]["aid2"][i])
+                        # pass
+                    else:
+                        draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
+                                                    get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
+                        
+                        
+                elif data["bonds"]["aid2"][i] in carbon_ids:
+                    if data["bonds"]["aid1"][i] in hydrogen_ids:
+                        removed_hydrogen_ids.append(data["bonds"]["aid1"][i])
+                        # pass
+                    else:
+                        draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
+                                                    get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
                 else:
-                    draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
-                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
-                    
-                    
-            elif data["bonds"]["aid2"][i] in carbon_ids:
-                if data["bonds"]["aid1"][i] in hydrogen_ids:
-                    removed_hydrogen_ids.append(data["bonds"]["aid1"][i])
-                    # pass
-                else:
-                    draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
-                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])
-            else:
-                    draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
-                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])  
-    else:
-        for i in range(len(data["bonds"]["aid1"])):
-            draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
-                                                get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])                                               
-    for i in range(len(data["coords"][0]["conformers"][0]["x"])):
-        if data["atoms"]["aid"][i] in removed_hydrogen_ids:
-            continue 
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.13 if (i+1) in hydrogen_ids else 0.2, location=(data["coords"][0]["conformers"][0]["x"][i],
-        data["coords"][0]["conformers"][0]["y"][i],0))
-        set_meterial(mapping[data["atoms"]["element"][i]])
-
-
-     
-    zoom_camera_to_fit() 
-    set_smooth_shading()
-    for deg in range(4):
-        rotate_model(np.radians(8))
-        render_scene(f"/home/wg25r/rendered/{data['id']['id']['cid']}_{deg}.jpg")
+                        draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]),
+                                                    get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])  
+        else:
+            for i in range(len(data["bonds"]["aid1"])):
+                draw_bonds(get_cord_by_aid(data["bonds"]["aid1"][i]), 
+                                                    get_cord_by_aid(data["bonds"]["aid2"][i]), data["bonds"]["order"][i])                                               
+        for i in range(len(data["coords"][0]["conformers"][0]["x"])):
+            if data["atoms"]["aid"][i] in removed_hydrogen_ids:
+                continue 
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.13 if (i+1) in hydrogen_ids else 0.2, location=(data["coords"][0]["conformers"][0]["x"][i],
+            data["coords"][0]["conformers"][0]["y"][i],0))
+            set_meterial(mapping[data["atoms"]["element"][i]])
+    
+    
+         
+        zoom_camera_to_fit() 
+        set_smooth_shading()
+        for deg in range(4):
+            rotate_model(np.radians(8))
+            render_scene(f"/home/wg25r/rendered/{data['id']['id']['cid']}_{deg}.jpg")
+    except:
+        print("Error")
