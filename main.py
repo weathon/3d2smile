@@ -254,6 +254,7 @@ print("START!")
 print(len(done))
 done = [i.split("_")[0] for i in done]
 done = set(done)
+print(done)
 reach_break_point = 1 
 for data in data_all:
     try:
