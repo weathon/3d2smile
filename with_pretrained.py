@@ -17,14 +17,14 @@
 # In[2]:
 
 
-import torch
+import torchi, torchvision
 import os
 import numpy as np
 import pylab
 import pandas
 import sys
 from PIL import Image
-
+efficientnetv2 = torchvision.models.efficientnet_v2_s(weights='DEFAULT')
 # In[3]:
 
 
@@ -253,48 +253,72 @@ pylab.plot(tmp)
 # In[26]:
 
 
-class ImageEncoder(torch.nn.Module):
-  def __init__(self, channels_list, heads, dropout, orginal_size):
-    super().__init__()
-    self.conv2d = torch.nn.Sequential(
-        # torch.nn.Conv2d(3, 32, (7, 7), stride=3),
-        # torch.nn.AvgPool2d((3,3), padding=1)
-        torch.nn.Conv2d(3, 64, (7, 7), stride=2, padding=1),
-        torch.nn.MaxPool2d((3, 3), stride=2)
-    ).to(device)
+# class ImageEncoder(torch.nn.Module):
+#   def __init__(self, channels_list, heads, dropout, orginal_size):
+#     super().__init__()
+#     self.conv2d = torch.nn.Sequential(
+#         # torch.nn.Conv2d(3, 32, (7, 7), stride=3),
+#         # torch.nn.AvgPool2d((3,3), padding=1)
+#         torch.nn.Conv2d(3, 64, (7, 7), stride=2, padding=1),
+#         torch.nn.MaxPool2d((3, 3), stride=2)
+#     ).to(device)
 
-    self.resnet_blocks = []
-    for i in range(len(channels_list)-1):
-      self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i], size=66//(2**i)).to(device))
-      self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i], size=66//(2**i), downsampling=0).to(device))
-      self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i], size=66//(2**i), downsampling=0).to(device))
-      self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i+1], size=66//(2**i), downsampling=0).to(device)) #gangcai self not defined
-    self.resnet_blocks = torch.nn.ModuleList(self.resnet_blocks)
+#     self.resnet_blocks = []
+#     for i in range(len(channels_list)-1):
+#       self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i], size=66//(2**i)).to(device))
+#       self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i], size=66//(2**i), downsampling=0).to(device))
+#       self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i], size=66//(2**i), downsampling=0).to(device))
+#       self.resnet_blocks.append(ResNetBlock(channels_list[i], channels_list[i+1], size=66//(2**i), downsampling=0).to(device)) #gangcai self not defined
+#     self.resnet_blocks = torch.nn.ModuleList(self.resnet_blocks)
+#     self.mlp = torch.nn.Sequential(
+#         torch.nn.Linear(512,800),
+#         torch.nn.GELU(),
+#         torch.nn.Dropout(0.2),
+#         torch.nn.Linear(800, 512),
+#         torch.nn.GELU(),
+#     ).to(device)
+#     #self.posem = torch.nn.Embedding(144, 512).to(device)
+#     self.mha = torch.nn.MultiheadAttention(channels_list[-1], heads, dropout = 0.1).to(device)
+#     self.norm = torch.nn.BatchNorm1d(144).to(device)
+
+#   def forward(self, images):
+#     features = self.conv2d(images)
+#     for f in self.resnet_blocks:
+#       features = f(features)
+#     features = torch.flatten(features, start_dim=2, end_dim=3)
+#     features = torch.permute(features, (0, 2, 1))
+#     #ran = torch.arange(0, 144)
+#     #pos = self.posem(ran.to(device).unsqueeze(0))
+#     pos = PE(144, 512)
+#     features = pos + features
+#     att = self.mha(features, features, features, need_weights=False)[0]
+#     return self.norm(self.mlp(att) + features)
+
+class ImageEncoder(torch.nn.Module):
+  def __init__(self):
+    super().__init__()
+    self.eff = efficientnetv2.features
+
     self.mlp = torch.nn.Sequential(
-        torch.nn.Linear(512,800),
+        torch.nn.Linear(1280,1280*2),
         torch.nn.GELU(),
         torch.nn.Dropout(0.2),
-        torch.nn.Linear(800, 512),
+        torch.nn.Linear(1280*2, 1280),
         torch.nn.GELU(),
     ).to(device)
-    #self.posem = torch.nn.Embedding(144, 512).to(device)
-    self.mha = torch.nn.MultiheadAttention(channels_list[-1], heads, dropout = 0.1).to(device)
-    self.norm = torch.nn.BatchNorm1d(144).to(device)
-
+    self.mha = torch.nn.MultiheadAttention(1280, 8, dropout = 0.1).to(device)
+    self.norm1 = torch.nn.BatchNorm1d(169).to(device)
+    self.norm2 = torch.nn.BatchNorm1d(169).to(device)
+    self.projection = torch.nn.Linear(1280,512)
   def forward(self, images):
-    features = self.conv2d(images)
-    for f in self.resnet_blocks:
-      features = f(features)
+    features = self.eff(images)
     features = torch.flatten(features, start_dim=2, end_dim=3)
     features = torch.permute(features, (0, 2, 1))
-    #ran = torch.arange(0, 144)
-    #pos = self.posem(ran.to(device).unsqueeze(0))
-    pos = PE(144, 512)
+    pos = PE(169, 1280)
     features = pos + features
     att = self.mha(features, features, features, need_weights=False)[0]
-    return self.norm(self.mlp(att) + features)
-
-
+    att = self.norm1(att + features)
+    return self.projection(self.norm2(self.mlp(att) + features))
 
 # In[27]:
 
@@ -638,8 +662,8 @@ def process_single(arg):
     except:
       return
     index = start_index + _
-    #img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32")
-    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
+    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32")
+    # img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
     noise = np.random.uniform(size=img.shape)*20
     img += noise
     return img, [2] + Ys[id], Ys[id] + [3]
@@ -709,9 +733,19 @@ buffer.empty()
 
 # https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
 
-optimizer = torch.optim.AdamW(model.parameters(),  betas=(0.999, 0.9995), lr=0.0007)
+# https://stackoverflow.com/questions/51801648/how-to-apply-layer-wise-learning-rate-in-pytorch
+optimizer = torch.optim.AdamW(
+      [
+        {"params": model.encoder.eff.parameters(), "lr": 1e-6},
+        {"params": model.mlp.parameters()},
+        {"params": model.mha.parameters()},
+        {"params": model.norm1.parameters()},
+        {"params": model.norm2.parameters()},
+        {"params": model.projection.parameters()},
+    ]
+  ,  betas=(0.999, 0.9995), lr=0.0007)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 200, verbose=1)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 2000, verbose=1)
 #.CosineAnnealingLR(optimizer, verbose=True)
 #torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.7, verbose=True)
 
@@ -769,7 +803,7 @@ for epoch in range(30):
     print(f"Training loss: {loss.item()}") #first time loss is small because it is dived by 10 where there is only 1
     #loss_list.append(loss.item())
     #isaveloss(loss_list)
-    wandb.log({"loss": loss.item(), "acc":mask_acc(outputs.detach(), text_out)})
+    wandb.log({"loss": loss.item(), "acc":mask_acc(outputs.detach(), text_out)}, "lr": optimizer.param_groups[0]['lr'])
     if i%20 == 0:
       print(f"Example Output: {gen(inp_img, [[2]])}")
       print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[2]+example_out]).cpu().detach().numpy()[0])]}")
