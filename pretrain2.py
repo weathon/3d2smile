@@ -299,8 +299,9 @@ CHANNELS = [64, 128, 256, 512]
 DROPOUT = 0.2
 inp_img = torch.permute(torch.tensor(np.expand_dims(example_in, 0).astype("float32")), (0,3,1,2))
 inp_img = inp_img.to(device)
-# encoder = ImageEncoder()
-encoder = torch.load("/scratch/st-dushan20-1/eff_9900.mod")
+encoder = ImageEncoder()
+#encoder = torch.load("/scratch/st-dushan20-1/eff_9900.mod")
+# encoder.load_state_dict(torch.load("/scratch/st-dushan20-1/eff_9900.mod"))
 print(encoder(inp_img).shape)
 
 # In[29]:
@@ -399,6 +400,7 @@ class SMILESGenerator(torch.nn.Module):
     return (text_in[0]), text_in[0], conf
 
 model = Image2SMILES(encoder, transformer)
+model.load_state_dict(torch.load("/scratch/st-dushan20-1/eff_9900.mod")) #kunyunexnaoziyunlewangjileyiweiencoder shiyige nageshilingyigemoxing
 gen = SMILESGenerator(encoder, transformer, 128)
 
 model = model.to(device)
