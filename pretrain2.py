@@ -69,8 +69,8 @@ import torchvision
 import torchvision.transforms as transforms
 
 # from config import get_config
-from eval import Greedy_decode
-from models import build_model
+# from eval import Greedy_decode
+# from models import build_model
 from pre_transformer import Transformer
 
 
@@ -133,10 +133,11 @@ class FocalLossModelInference:
                            max_len=self.max_len,
                            drop_rate=self.dropout,
                            tag=False)
-transformer = FocalLossModelInference().build_decoder().decoder
+transformer_ = FocalLossModelInference()
+transformer = transformer_.build_decoder().decoder
 
 # In[ ]:
-print(transformer.word_map)
+print(transformer_.word_map)
 
 
 print(device)
@@ -145,11 +146,11 @@ print(device)
 
 converter = deepsmiles.Converter(rings=True, branches=True)
 
-[transformer.word_map[i] for i in converter.encode("CC(=O)Nc1ccc(O)cc1")]
+# [transformer_.word_map[i] for i in converter.encode("CC(=O)Nc1ccc(O)cc1")]
 
 # In[]
 def str_to_vector(s: str)->list:
-  return [transformer.word_map[i] for i in converter.encode(s)]
+  return [transformer_.word_map[i] for i in converter.encode(s)]
 
 # In[]:
 
@@ -186,7 +187,7 @@ for i in cids.values:
     if not tmp == None:
       Ys[i] = tmp
     else:
-      smiles_tokenlizer.append(i)
+      invalid_cids.append(i)
 
 # In[13]:
 
@@ -202,67 +203,7 @@ example_out = csv[csv["cid"]==6912034]["canonicalsmiles"].values[0]
 # In[15]:
 
 
-example_out = smiles_tokenlizer(example_out)
-
-
-# In[17]:
-
-
-# freq = [1] * 72
-# for i in Ys.keys():
-#   for j in Ys[i]:
-#     freq[j]+=1
-
-# reverse_freq = 1/np.array(freq)
-# pylab.plot(freq)
-
-# # In[18]:
-
-
-# reverse_freq_ = reverse_freq**0.35
-# scales = np.mean(reverse_freq_)
-# np.mean(reverse_freq_/scales), np.min(reverse_freq_/scales)
-
-# In[19]:
-
-
-# pylab.plot(reverse_freq_/scales)
-
-# In[20]:
-
-
-# weights = torch.tensor(reverse_freq_/scales).to(device)
-# print("weights")
-# print(weights)
-# # # Model
-#
-
-# In[21]:
-
-
-class ResNetBlock(torch.nn.Module):
-  def __init__(self, in_channels, out_channels, size, downsampling=True):
-    super().__init__()
-    self.Conv2D = torch.nn.Sequential(
-        torch.nn.Conv2d(in_channels, out_channels, (3,3), stride=2 if downsampling else 1, padding=(3 if size%2==0 else 2) if downsampling else 2),
-        torch.nn.BatchNorm2d(out_channels),
-        torch.nn.ReLU(),
-        torch.nn.Conv2d(out_channels, out_channels, (3,3)),
-        torch.nn.BatchNorm2d(out_channels),
-    )
-    self.project = torch.nn.Conv2d(in_channels, out_channels, (1,1))
-    self.pooling = torch.nn.AvgPool2d((2,2)) if downsampling else torch.nn.Identity()
-    self.relu = torch.nn.ReLU()
-  def forward(self, images):
-    x = self.Conv2D(images)
-    images = self.pooling(self.project(images))
-    return self.relu(x+images)
-resblock = ResNetBlock(3,12,400, 0)
-inp_img = torch.permute(torch.tensor(np.expand_dims(example_in, 0).astype("float32")), (0,3,1,2))
-oup = resblock(inp_img)[:,-3:,:,:]
-pylab.imshow(torch.permute(oup, (0,2,3,1)).cpu().detach().numpy()[0])
-
-# In[22]:
+example_out = str_to_vector(example_out)
 
 
 torch.permute(torch.tensor(np.expand_dims(example_in, 0).astype("float32")), (0,3,1,2)).size()
@@ -276,13 +217,10 @@ torch.flatten(t, start_dim=2,end_dim=3).shape
 
 # In[24]:
 
-"""
-def positional_encoding(pos, i):
-  if i%2==0:
-    return np.sin(pos/1000**(2*i/512))
-  else:
-    return np.cos(pos/1000**(2*i/512))
-"""
+def get_angles(pos, i, d_model):
+    angle_rates = 1 / np.power(10000, (2 * (i//2)) / np.float32(d_model))
+    return pos * angle_rates
+
 # https://github.com/Kohulan/DECIMER-Image_Transformer/blob/master/DECIMER/Transformer_decoder.py
 import numpy as np
 def positional_encoding_1d(position, d_model):
@@ -328,7 +266,7 @@ class ImageEncoder(torch.nn.Module):
     self.mlp = torch.nn.Sequential(
         torch.nn.Linear(256,256*2),
         torch.nn.GELU(),
-        torch.nn.Dropout(0.2),
+        torch.nn.Dropout(0.1),
         torch.nn.Linear(256*2, 256),
         torch.nn.GELU(),
     ).to(device)
@@ -340,7 +278,7 @@ class ImageEncoder(torch.nn.Module):
     features = self.eff(images)
     features = torch.flatten(features, start_dim=2, end_dim=3)
     features = torch.permute(features, (0, 2, 1))
-    print(features.shape)
+    # print(features.shape)
     pos = positional_encoding_2d(13, 13, 256)
     features = features
     att = self.mha(features, features, features, need_weights=False)[0]
@@ -359,6 +297,7 @@ class ImageEncoder(torch.nn.Module):
 NUM_HEADS = 4
 CHANNELS = [64, 128, 256, 512]
 DROPOUT = 0.2
+inp_img = torch.permute(torch.tensor(np.expand_dims(example_in, 0).astype("float32")), (0,3,1,2))
 inp_img = inp_img.to(device)
 encoder = ImageEncoder()
 print(encoder(inp_img).shape)
@@ -374,6 +313,7 @@ sum(p.numel() for p in encoder.parameters())
 from torchinfo import summary
 print(summary(encoder, (1,3,400,400), depth=10))
 
+# quit()
 # In[31]:
 
 
@@ -394,29 +334,38 @@ print(summary(encoder, (1,3,400,400), depth=10))
 
 inp_img = inp_img.to(device)
 
+for p in transformer.parameters():
+  p.requires_grad = False
 
-sum(p.numel() for p in M.T.decoder.parameters() if p.requires_grad)
+sum(p.numel() for p in transformer.parameters() if p.requires_grad)
 
 # In[45]:
+# from another paper
+def pad_pack(sequences):
+    maxlen = max(map(len, sequences))
+    batch = torch.LongTensor(len(sequences),maxlen).fill_(0)
+    for i,x in enumerate(sequences):
+        batch[i,:len(x)] = torch.LongTensor(x)
+    return batch, maxlen
+
+# https://github.com/suanfaxiaohuo/SwinOCSR/blob/main/model/Swin-transformer-focalloss/pre_transformer.py#L95
+def triangle_mask(size):
+    mask = 1- np.triu(np.ones((1, size, size)),k=1).astype('uint8')
+    mask = torch.autograd.Variable(torch.from_numpy(mask))
+    return mask
 
 
 class Image2SMILES(torch.nn.Module):
-  def __init__(self, encoder, embeding, decoder, generator):
+  def __init__(self, encoder, decoder):
     super().__init__()
     self.encoder = encoder
-    self.embeding = embeding
     self.decoder = decoder
-    self.generator = generator
 
-  def forward (self, image, text_in):
+  def forward(self, image, text_in):
+    padded_text, maxlen = pad_pack(text_in)
+    padded_text = padded_text.to(device)
     image_feature = self.encoder(image)
-    paded = pad_pack(text_in).to(device)
-    embedded = self.embeding(paded)
-    out = self.decoder(embedded, image_feature,
-                       torch.ones(169).unsqueeze(-2).to(M.device), #ones?
-                       subsequent_mask((paded != 0)
-                       .unsqueeze(-2)))
-    out = self.generator(out)
+    out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(maxlen).to(device))
     return out
 
 # In[46]:
@@ -425,25 +374,20 @@ def softmax(x):
         t = np.exp(x)
         return t/np.sum(t)
 class SMILESGenerator(torch.nn.Module):
-  def __init__(self, encoder, embeding, decoder, generator, max_len):
+  def __init__(self, encoder, decoder, max_len):
     super().__init__()
     self.encoder = encoder
-    self.embeding = embeding
     self.decoder = decoder
-    self.generator = generator
     self.max_len = max_len
 
   def forward (self, image, text_in):
     image_feature = self.encoder(image)
     conf = 1
     for i in range(self.max_len):
-      paded = pad_pack(text_in).to(device)
-      embedded = self.embeding(paded)
-      out = self.decoder(embedded, image_feature,
-                        torch.ones(169).unsqueeze(-2).to(M.device),
-                        subsequent_mask((paded != 0)
-                        .unsqueeze(-2)))
-      out = self.generator(out)
+      padded_text, _ = pad_pack(text_in)
+      padded_text = padded_text.to(device)
+      out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(len(text_in)).to(device))
+      # out = self.generator(out)
       next = torch.sort(out, descending=True)[1][0,0].cpu().detach().numpy()[0] #forgot descending
       conf = conf * softmax(torch.sort(out, descending=True)[0][0].cpu().detach().numpy())[0][0]
       #if next == 3:
@@ -451,34 +395,21 @@ class SMILESGenerator(torch.nn.Module):
       #    break
       text_in[0] += [next]
       # print(text_in)
-    return M.tgt_model.decode(text_in[0]), text_in[0], conf
+    return (text_in[0]), text_in[0], conf
 
+model = Image2SMILES(encoder, transformer)
+gen = SMILESGenerator(encoder, transformer, 128)
 
-# In[47]:
+model = model.to(device)
+gen = gen.to(device)
 
-
-model = Image2SMILES(encoder.to(device),
-    M.T.tgt_embedder.to(device),
-             M.T.decoder.to(device), M.T.generator.to(device))
-
-# In[48]:/resn
-
-#print(summary(M.T.decoder, (1,1), depth=10))
-
-gen = SMILESGenerator(encoder,
-    M.T.tgt_embedder,
-             M.T.decoder, M.T.generator, 10)
-
-# In[49]:
-
-
-torch.argmax(model(inp_img, [[2, 0]])[0,0])
+print(torch.argmax(model(inp_img, [[2, 0]])[0,0]))
+print("output shape", (model(inp_img, [[2, 0]])).shape)
 
 # In[50]:
 
 
-gen(inp_img, [[2]])
-
+gen(inp_img, [[77]])
 # In[51]:
 
 
@@ -490,11 +421,10 @@ def softmax(x):
 
 
 pylab.plot(softmax(model(inp_img, [[2, 0]])[0][0].cpu().detach().numpy()))
-
+# pylab.savefig("test.png")
 # In[53]:
 
 
-M.tgt_model.decode([37])
 
 # In[54]:
 
@@ -508,30 +438,43 @@ sum(p.numel() for p in model. parameters() if not p.requires_grad)
 
 
 import torch
-# torch.gather(
-#     torch.tensor([0.,0.2,0.3,0.4,0.5]), 0, torch.tensor([[1,2,3]], dtype=torch.int64),
-# # )
-# w = torch.tensor([0.,0.2,0.3,0.4,0.5])
-# ind = torch.tensor([[1,2,3],[0,1,2
-# ]])
-# w[ind]
 
-# In[56]:
+# /https://github.com/suanfaxiaohuo/SwinOCSR/blob/7c51d26a10a096bbf9c46113610e0ee5df75f250/model/Swin-transformer-focalloss/main.py#L53
+# class FocalLoss(torch.nn.Module):
+#     def __init__(self, alpha=0.25, gamma=2):
+#         super(FocalLoss, self).__init__()
+#         self.alpha = alpha
+#         self.gamma = gamma
+#         self.loss = nn.BCEWithLogitsLoss(reduction='none')
 
+#     def forward(self, inputs, targets):
+#         N = inputs.size(0)
+#         C = inputs.size(1)
+#         class_mask = inputs.data.new(N, C).fill_(0)
+#         class_mask = Variable(class_mask)
+#         ids = targets.view(-1, 1)
+#         targets_onehot = class_mask.scatter_(1, ids.data, 1.)
+#         positive_label_mask = torch.eq(targets_onehot, torch.Tensor([1]).cuda())
+#         sigmoid_cross_entropy = self.loss(inputs, targets_onehot)
+#         probs = torch.sigmoid(inputs)
+#         probs_gt = torch.where(positive_label_mask, probs, 1.0 - probs)
+#         # With small gamma, the implementation could produce NaN during back prop.
+#         modulator = torch.pow(1.0 - probs_gt, self.gamma)
+#         loss = modulator * sigmoid_cross_entropy
+#         weighted_loss = torch.where(positive_label_mask, self.alpha * loss,
+#                                  (1.0 - self.alpha) * loss)
 
-lf = torch.nn.CrossEntropyLoss(label_smoothing=0.1, reduction="none")
+#         return weighted_loss.sum()
+from focal_loss.focal_loss import FocalLoss
+m = torch.nn.Softmax(dim=-1)
+lf = FocalLoss(gamma=2, ignore_index=0)#torch.nn.CrossEntropyLoss(label_smoothing=0.1, reduction="none")
 def loss_fn(pred, truth):
-  # jiaosuan xkou shuijiaoshi turanxiangdao wangjile weight
-  #print(truth)
-  w = weights[truth]
-  mask = truth != 0
-
-  #mask = torch.logical_or(padding_mask,
-  #print(mask)
-  pred = pred.permute(0,2,1) #WHY
-  truth = torch.nn.functional.one_hot(truth, num_classes=72).type(torch.float32).permute(0,2,1)
-  l = lf(pred, truth) * w
-  return torch.sum(mask*l)/torch.sum(mask)
+  # mask = truth != 0
+  # pred = pred.permute(0,2,1) #WHY
+  # truth = torch.nn.functional.one_hot(truth, num_classes=len(transformer_.word_map.keys())).type(torch.float32).permute(0,2,1)
+  pred = m(pred)
+  l = lf(pred, truth)
+  return l
 
 
 def mask_acc(pred, truth):
@@ -574,7 +517,7 @@ saveloss(_)
 
 
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 files = os.listdir(f"{HOME_DIR}/rendered/")
 import multiprocessing, threading
 import queue
@@ -595,10 +538,10 @@ def process_single(arg):
     # img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
     noise = np.random.uniform(size=img.shape)*20
     img += noise
-    return img, [2] + Ys[id], Ys[id] + [3]
+    return img, [77] + Ys[id], Ys[id] + [78]
     # Xs_img.append(img)
-    # Xs_text.append([2] + Ys[id])
-    # y.append(Ys[id] + [3])
+    # Xs_text.append([77] + Ys[id])
+    # y.append(Ys[id] + [78])
 
 def getitem(index):
   start_index = index * BATCH_SIZE
@@ -614,7 +557,7 @@ def getitem(index):
   Xs_text = [i[1] for i in ans]
   y = [i[2] for i in ans]
   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
-  buffer.put(([Xs_img, pad_pack(Xs_text)], pad_pack(y)))
+  buffer.put(([Xs_img, pad_pack(Xs_text)[0]], pad_pack(y)[0]))
 
 p = threading.Thread(target=getitem, args=(0,)) #It says threading no process, did i used the wrong li
 p.start()
@@ -664,18 +607,20 @@ buffer.empty()
 
 # https://stackoverflow.com/questions/51801648/how-to-apply-layer-wise-learning-rate-in-pytorch
 optimizer = torch.optim.AdamW(
-      [
-       {"params": model.encoder.eff.parameters(), "lr":0.0005},
-        {"params": model.encoder.mlp.parameters()},
-        {"params": model.encoder.mha.parameters()},
-        {"params": model.encoder.norm1.parameters()},
-        {"params": model.encoder.norm2.parameters()},
-        {"params": model.encoder.projection.parameters()},
-        {"params": model.decoder.parameters(), "lr":5e-8},
-    ]
-  ,  betas=(0.9999, 0.999), lr=0.0007)
+    #   [
+    #    {"params": model.encoder.eff.parameters()},
+    #     {"params": model.encoder.mlp.parameters()},
+    #     {"params": model.encoder.mha.parameters()},
+    #     {"params": model.encoder.norm1.parameters()},
+    #     {"params": model.encoder.norm2.parameters()},
+    #     {"params": model.encoder.projection.parameters()},
+    #     # {"params": model.decoder.parameters(), "lr":5e-8},
+    # ]
+    model.parameters(),
+  #  betas=(0.9999, 0.999),
+   lr=0.0007)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1000, verbose=1)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1000, verbose=0)
 #.CosineAnnealingLR(optimizer, verbose=True)
 #torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.7, verbose=True)
 
@@ -695,7 +640,7 @@ import wandb
 
 wandb.init(
     project="Training 3d to SMILES",
-    config={"changes":"different lr for different layers","scheduler": "cus","lr":0.0007,"T0":200,"betas":"0.999,0.9995"}
+    config={"changes":"Pretrained Model For Images","scheduler": "cus","lr":0.0007,"T0":200,"betas":"0.999,0.9995"}
 )
 
 
@@ -703,7 +648,7 @@ for epoch in range(30):
   np.random.shuffle(files)
   print('EPOCH {}:'.format(epoch + 1))
   model.train(True)
-  # running_loss = 0.
+  running_loss = 0.
   last_loss = 0.
   for i in range(len(files)//BATCH_SIZE):
     if i != len(files)//BATCH_SIZE - 1:
@@ -728,19 +673,22 @@ for epoch in range(30):
 
     optimizer.step()
 
-    # running_loss += loss.item()
+    running_loss += loss.item()
     # if i%3 == 2:
     #iprint(f"Training loss: {loss.item()}") #first time loss is small because it is dived by 10 where there is only 1
     #loss_list.append(loss.item())
     #isaveloss(loss_list)
-    if i%2==0:
-        wandb.log({"loss": loss.item(), "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
+    if i%3==2:
+        wandb.log({"loss": running_loss/3, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
+        # print(running_loss/10)
+        running_loss = 0.
+        pass
     if i%20 == 0:
-      print(f"Example Output: {gen(inp_img, [[2]])}")
-      print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[2]+example_out]).cpu().detach().numpy()[0])]}")
-      #iprint(f"Example Output: {(inp_img, [[2]])}")
+      print(f"Example Output: {gen(inp_img, [[77]])}")
+      print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out]).cpu().detach().numpy()[0])]}")
+      #iprint(f"Example Output: {(inp_img, [[77]])}")
     if i%10 == 9:
-    	scheduler.step()
+        scheduler.step()
 
     if i%100 == 0:
         torch.save(model.state_dict(), f"/scratch/st-dushan20-1/eff_{i}.mod")
