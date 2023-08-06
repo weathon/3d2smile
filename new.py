@@ -274,7 +274,7 @@ class ImageEncoder(torch.nn.Module):
     self.norm1 = torch.nn.BatchNorm1d(169).to(device)
     self.norm2 = torch.nn.BatchNorm1d(169).to(device)
     self.projection = torch.nn.Linear(256,256).to(device)
-  def forward(self, images):import 
+  def forward(self, images): 
     features = self.eff(images)
     features = torch.flatten(features, start_dim=2, end_dim=3)
     features = torch.permute(features, (0, 2, 1))
@@ -365,7 +365,7 @@ class Image2SMILES(torch.nn.Module):
     padded_text, maxlen = pad_pack(text_in)
     padded_text = padded_text.to(device)
     image_feature = self.encoder(image)
-    out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(maxlen))
+    out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(maxlen).to(device))
     return out
 
 # In[46]:
@@ -386,7 +386,7 @@ class SMILESGenerator(torch.nn.Module):
     for i in range(self.max_len):
       padded_text, _ = pad_pack(text_in)
       padded_text = padded_text.to(device)
-      out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(len(text_in)))
+      out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(len(text_in)).to(device))
       # out = self.generator(out)
       next = torch.sort(out, descending=True)[1][0,0].cpu().detach().numpy()[0] #forgot descending
       conf = conf * softmax(torch.sort(out, descending=True)[0][0].cpu().detach().numpy())[0][0]
@@ -399,6 +399,9 @@ class SMILESGenerator(torch.nn.Module):
 
 model = Image2SMILES(encoder, transformer)
 gen = SMILESGenerator(encoder, transformer, 128)
+
+model = model.to(device)
+gen = gen.to(device)
 
 print(torch.argmax(model(inp_img, [[2, 0]])[0,0]))
 print("output shape", (model(inp_img, [[2, 0]])).shape)
@@ -418,7 +421,7 @@ def softmax(x):
 
 
 pylab.plot(softmax(model(inp_img, [[2, 0]])[0][0].cpu().detach().numpy()))
-pylab.savefig("test.png")
+# pylab.savefig("test.png")
 # In[53]:
 
 
@@ -462,14 +465,16 @@ import torch
 #                                  (1.0 - self.alpha) * loss)
 
 #         return weighted_loss.sum()
-
-lf = torch.nn.CrossEntropyLoss(label_smoothing=0.1, reduction="none")
+from focal_loss.focal_loss import FocalLoss
+m = torch.nn.Softmax(dim=-1)
+lf = FocalLoss(gamma=2, ignore_index=0)#torch.nn.CrossEntropyLoss(label_smoothing=0.1, reduction="none")
 def loss_fn(pred, truth):
-  mask = truth != 0
-  pred = pred.permute(0,2,1) #WHY
-  truth = torch.nn.functional.one_hot(truth, num_classes=len(transformer_.word_map.keys())).type(torch.float32).permute(0,2,1)
+  # mask = truth != 0
+  # pred = pred.permute(0,2,1) #WHY
+  # truth = torch.nn.functional.one_hot(truth, num_classes=len(transformer_.word_map.keys())).type(torch.float32).permute(0,2,1)
+  pred = m(pred)
   l = lf(pred, truth)
-  return torch.sum(mask*l)/torch.sum(mask)
+  return l
 
 
 def mask_acc(pred, truth):
@@ -512,7 +517,7 @@ saveloss(_)
 
 
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 files = os.listdir(f"{HOME_DIR}/rendered/")
 import multiprocessing, threading
 import queue
@@ -602,16 +607,18 @@ buffer.empty()
 
 # https://stackoverflow.com/questions/51801648/how-to-apply-layer-wise-learning-rate-in-pytorch
 optimizer = torch.optim.AdamW(
-      [
-       {"params": model.encoder.eff.parameters()},
-        {"params": model.encoder.mlp.parameters()},
-        {"params": model.encoder.mha.parameters()},
-        {"params": model.encoder.norm1.parameters()},
-        {"params": model.encoder.norm2.parameters()},
-        {"params": model.encoder.projection.parameters()},
-        {"params": model.decoder.parameters(), "lr":5e-8},
-    ]
-  ,  betas=(0.9999, 0.999), lr=0.0007)
+    #   [
+    #    {"params": model.encoder.eff.parameters()},
+    #     {"params": model.encoder.mlp.parameters()},
+    #     {"params": model.encoder.mha.parameters()},
+    #     {"params": model.encoder.norm1.parameters()},
+    #     {"params": model.encoder.norm2.parameters()},
+    #     {"params": model.encoder.projection.parameters()},
+    #     # {"params": model.decoder.parameters(), "lr":5e-8},
+    # ]
+    model.parameters(),
+  #  betas=(0.9999, 0.999),
+   lr=0.0007)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1000, verbose=0)
 #.CosineAnnealingLR(optimizer, verbose=True)
@@ -671,8 +678,8 @@ for epoch in range(30):
     #iprint(f"Training loss: {loss.item()}") #first time loss is small because it is dived by 10 where there is only 1
     #loss_list.append(loss.item())
     #isaveloss(loss_list)
-    if i%10==0:
-        wandb.log({"loss": running_loss/10, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
+    if i%3==2:
+        wandb.log({"loss": running_loss/3, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
         # print(running_loss/10)
         running_loss = 0.
         pass
