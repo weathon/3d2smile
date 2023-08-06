@@ -220,7 +220,7 @@ torch.flatten(t, start_dim=2,end_dim=3).shape
 def get_angles(pos, i, d_model):
     angle_rates = 1 / np.power(10000, (2 * (i//2)) / np.float32(d_model))
     return pos * angle_rates
-
+    
 # https://github.com/Kohulan/DECIMER-Image_Transformer/blob/master/DECIMER/Transformer_decoder.py
 import numpy as np
 def positional_encoding_1d(position, d_model):
@@ -274,7 +274,7 @@ class ImageEncoder(torch.nn.Module):
     self.norm1 = torch.nn.BatchNorm1d(169).to(device)
     self.norm2 = torch.nn.BatchNorm1d(169).to(device)
     self.projection = torch.nn.Linear(256,256).to(device)
-  def forward(self, images):
+  def forward(self, images): 
     features = self.eff(images)
     features = torch.flatten(features, start_dim=2, end_dim=3)
     features = torch.permute(features, (0, 2, 1))
@@ -299,7 +299,8 @@ CHANNELS = [64, 128, 256, 512]
 DROPOUT = 0.2
 inp_img = torch.permute(torch.tensor(np.expand_dims(example_in, 0).astype("float32")), (0,3,1,2))
 inp_img = inp_img.to(device)
-encoder = ImageEncoder()
+# encoder = ImageEncoder()
+encoder = torch.load("/scratch/st-dushan20-1/eff_9900.mod")
 print(encoder(inp_img).shape)
 
 # In[29]:
@@ -650,8 +651,8 @@ for epoch in range(30):
   model.train(True)
   running_loss = 0.
   last_loss = 0.
-  for i in range(len(files)//BATCH_SIZE):
-    if i != len(files)//BATCH_SIZE - 1:
+  for i in range(len(files)//BATCH_SIZE-1):
+    if i != len(files)//BATCH_SIZE-1: #I got it why it stoped running on the last batch, i do not need the -1 actually put the -1 back so that it wil be the same but also -1 on the top chaojiyunshoutongkuenx
       p = threading.Thread(target=getitem, args=(i+1,))
       p.start()
 
@@ -688,7 +689,7 @@ for epoch in range(30):
       print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out]).cpu().detach().numpy()[0])]}")
       #iprint(f"Example Output: {(inp_img, [[77]])}")
     if i%10 == 9:
-        scheduler.step()
+    	scheduler.step()
 
     if i%100 == 0:
         torch.save(model.state_dict(), f"/scratch/st-dushan20-1/eff_{i}.mod")
