@@ -255,32 +255,33 @@ def positional_encoding_2d(row, col, d_model):
     ]
     return pos_encoding
 # In[]
-efficientnetv2 = torchvision.models.efficientnet_v2_s(weights='DEFAULT')
+efficientnetv2 = torchvision.models.efficientnet_v2_m(weights='DEFAULT')
 mynet = efficientnetv2.features
-mynet[7] = torch.nn.Identity()
+#mynet[7] = torch.nn.Identity() this is causing error xkoulatong
 class ImageEncoder(torch.nn.Module):
   def __init__(self):
     super().__init__()
     self.eff = mynet.to(device)
 
     self.mlp = torch.nn.Sequential(
-        torch.nn.Linear(256,256*2),
+        torch.nn.Linear(1280,2048),
         torch.nn.GELU(),
-        torch.nn.Dropout(0.1),
-        torch.nn.Linear(256*2, 256),
+        torch.nn.Dropout(0.2),
+        torch.nn.Linear(2048, 1280),
         torch.nn.GELU(),
     ).to(device)
-    self.mha = torch.nn.MultiheadAttention(256, 8, dropout = 0.1).to(device)
+    self.mha = torch.nn.MultiheadAttention(1280, 8, dropout = 0.1).to(device)
     self.norm1 = torch.nn.BatchNorm1d(169).to(device)
     self.norm2 = torch.nn.BatchNorm1d(169).to(device)
-    self.projection = torch.nn.Linear(256,256).to(device)
+    self.projection = torch.nn.Linear(1280,256).to(device)
   def forward(self, images): 
     features = self.eff(images)
+    pos = positional_encoding_2d(13, 13, 1280)
+    # features = pos + features #FUCK I FORGOT ADD POS yesterday too tired
     features = torch.flatten(features, start_dim=2, end_dim=3)
     features = torch.permute(features, (0, 2, 1))
     # print(features.shape)
-    pos = positional_encoding_2d(13, 13, 256)
-    features = features
+    features = features + torch.tensor(pos, dtype=torch.float32).to(device)
     att = self.mha(features, features, features, need_weights=False)[0]
     att = self.norm1(att + features)
     return self.projection(self.norm2(self.mlp(att) + features))
@@ -294,15 +295,15 @@ class ImageEncoder(torch.nn.Module):
 # In[28]:
 
 
-NUM_HEADS = 4
+NUM_HEADS = 8
 CHANNELS = [64, 128, 256, 512]
 DROPOUT = 0.2
 inp_img = torch.permute(torch.tensor(np.expand_dims(example_in, 0).astype("float32")), (0,3,1,2))
 inp_img = inp_img.to(device)
-encoder = ImageEncoder()
+encoder = ImageEncoder() #why this made error on the other side not here becaus ethe paras are in GPU xkou xtiao xkou chouminkunsuankunexk
 #encoder = torch.load("/scratch/st-dushan20-1/eff_9900.mod")
-# encoder.load_state_dict(torch.load("/scratch/st-dushan20-1/eff_9900.mod"))
-print(encoder(inp_img).shape)
+#encoder.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet7_5000.mod"))
+# print(encoder(inp_img).shape)
 
 # In[29]:
 
@@ -386,7 +387,7 @@ class SMILESGenerator(torch.nn.Module):
     image_feature = self.encoder(image)
     conf = 1
     for i in range(self.max_len):
-      padded_text, _ = pad_pack(text_in)
+      padded_text = pad_pack(text_in)[0]
       padded_text = padded_text.to(device)
       out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(len(text_in)).to(device))
       # out = self.generator(out)
@@ -400,7 +401,8 @@ class SMILESGenerator(torch.nn.Module):
     return (text_in[0]), text_in[0], conf
 
 model = Image2SMILES(encoder, transformer)
-model.load_state_dict(torch.load("/scratch/st-dushan20-1/eff_9900.mod")) #kunyunexnaoziyunlewangjileyiweiencoder shiyige nageshilingyigemoxing
+#model.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet_large2_0.mod")) #load_state_dict(torch.load("/scratch/st-dushan20-1/eff0_7400.mod")) #kunyunexnaoziyunlewangjileyiweiencoder shiyige nageshilingyigemoxing
+model.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet_medium4_3000.mod"))
 gen = SMILESGenerator(encoder, transformer, 128)
 
 model = model.to(device)
@@ -520,8 +522,9 @@ saveloss(_)
 
 
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 files = os.listdir(f"{HOME_DIR}/rendered/")
+files = [i for i in files if len(i)<=40]
 import multiprocessing, threading
 import queue
 import time
@@ -537,8 +540,8 @@ def process_single(arg):
     except:
       return
     index = start_index + _
-    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32")
-    # img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
+    #img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32")
+    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
     noise = np.random.uniform(size=img.shape)*20
     img += noise
     return img, [77] + Ys[id], Ys[id] + [78]
@@ -546,7 +549,8 @@ def process_single(arg):
     # Xs_text.append([77] + Ys[id])
     # y.append(Ys[id] + [78])
 
-def getitem(index):
+def getitems(s, e):
+ for index in range(s, e):
   start_index = index * BATCH_SIZE
   Xs_img = []
   Xs_text = []
@@ -621,9 +625,11 @@ optimizer = torch.optim.AdamW(
     # ]
     model.parameters(),
   #  betas=(0.9999, 0.999),
-   lr=0.0007)
-# scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1000, verbose=0)
+   lr=0.00025)
+
+
+scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99986)
+#scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10, threshold=0.005, factor=0.9)#torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 4000, eta_min=0.0000003, verbose=0)
 #.CosineAnnealingLR(optimizer, verbose=True)
 #torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.7, verbose=True)
 
@@ -635,7 +641,8 @@ model.to(device)
 while not buffer.empty():
   buffer.get()
 
-p = threading.Thread(target=getitem, args=(0,))
+
+
 p.start()
 p.join()
 
@@ -643,7 +650,7 @@ import wandb
 
 wandb.init(
     project="Training 3d to SMILES",
-    config={"changes":"Pretrained Model For Images","scheduler": "cus","lr":0.0007,"T0":200,"betas":"0.999,0.9995"}
+    config={"changes":"eff with att Pretrained Model For Images","scheduler": "cus","lr":0.0007,"T0":200,"betas":"0.999,0.9995"}
 )
 
 
@@ -651,12 +658,14 @@ for epoch in range(30):
   np.random.shuffle(files)
   print('EPOCH {}:'.format(epoch + 1))
   model.train(True)
-  running_loss = 0.
-  last_loss = 0.
-  for i in range(len(files)//BATCH_SIZE-1):
-    if i != len(files)//BATCH_SIZE-1: #I got it why it stoped running on the last batch, i do not need the -1 actually put the -1 back so that it wil be the same but also -1 on the top chaojiyunshoutongkuenx
-      p = threading.Thread(target=getitem, args=(i+1,))
-      p.start()
+  running_loss = 0
+  last_loss = 0
+  start = 3001 if epoch == 0 else 0
+  p = threading.Thread(target=getitems, args=(start, len(files)//BATCH_SIZE-1)) 
+  for i in range(start, len(files)//BATCH_SIZE-1):
+    #if i != len(files)//BATCH_SIZE-1: #I got it why it stoped running on the last batch, i do not need the -1 actually put the -1 back so that it wil be the same but also -1 on the top chaojiyunshoutongkuenx
+    #  p = threading.Thread(target=getitem, args=(i+1,))
+    #  p.start()
 
     loaded = not buffer.empty()
     if not loaded:
@@ -680,19 +689,33 @@ for epoch in range(30):
     # if i%3 == 2:
     #iprint(f"Training loss: {loss.item()}") #first time loss is small because it is dived by 10 where there is only 1
     #loss_list.append(loss.item())
-    #isaveloss(loss_list)
-    if i%3==2:
-        wandb.log({"loss": running_loss/3, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
+    #isaveloss(loss_list)i
+    if i%20==19:
+        wandb.log({"loss": running_loss/20, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
+        scheduler.step()
+        """        
+with open("/scratch/st-dushan20-1/lr.txt", "r") as f:
+          lr = float(f.read())
+          if not lr < 0:
+            optimizer.param_groups[0]['lr'] = lr
+          else:
+            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']*0.9999
+            if optimizer.param_groups[0]['lr'] <= 7e-6:
+              optimizer.param_groups[0]['lr'] = 0.0003
+        with open("/scratch/st-dushan20-1/lr.txt", "w") as f:
+          f.write("-1")"""
+        
         # print(running_loss/10)
         running_loss = 0.
-        pass
-    if i%20 == 0:
-      print(f"Example Output: {gen(inp_img, [[77]])}")
+    if i%200 == 0:
+      #print(f"Example Output: {gen(inp_img, [[77]])}")
       print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out]).cpu().detach().numpy()[0])]}")
       #iprint(f"Example Output: {(inp_img, [[77]])}")
-    if i%10 == 9:
-    	scheduler.step()
+    
+    #if i%10 == 9:
+    #	scheduler.step()
 
-    if i%100 == 0:
-        torch.save(model.state_dict(), f"/scratch/st-dushan20-1/eff_{i}.mod")
+    if i%500 == 0:
+        torch.save(model.state_dict(), f"/scratch/st-dushan20-1/effnet_medium{epoch}_{i}.mod")
       #print(f"New learning rate: {optimizer.param_groups[0]['lr']}")
+wg25r@login02:~/with_pretrain$ 
