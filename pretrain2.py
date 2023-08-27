@@ -522,7 +522,7 @@ saveloss(_)
 
 
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 files = os.listdir(f"{HOME_DIR}/rendered/")
 files = [i for i in files if len(i)<=40]
 import multiprocessing, threading
@@ -564,7 +564,7 @@ def getitems(s, e):
   Xs_text = [i[1] for i in ans]
   y = [i[2] for i in ans]
   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
-  buffer.put(([Xs_img, pad_pack(Xs_text)[0]], pad_pack(y)[0]))
+  buffer.put(([Xs_img.to(device), pad_pack(Xs_text)[0].to(device)], pad_pack(y)[0].to(device)))
 
 #p = threading.Thread(target=getitem, args=(0,)) #It says threading no process, did i used the wrong li
 #p.start()
@@ -671,14 +671,14 @@ for epoch in range(30):
     loaded = not buffer.empty()
     if not loaded:
       print("WARNING: reading too slow")
-      pass
+
 
     (image, text_in), text_out = buffer.get(block=True)
     # if not loaded:
     #   print("Loaded")
 
-    image = image.to(device)
-    text_out = text_out.to(device)
+    image = image#.to(device)
+    text_out = text_out#.to(device)
     optimizer.zero_grad()
     outputs = model(image, text_in)
     loss = loss_fn(outputs, text_out)
