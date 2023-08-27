@@ -311,11 +311,11 @@ class Image2SMILES(torch.nn.Module):
     self.encoder = encoder
     self.decoder = decoder
 
-  def forward(self, image, text_in):
-    padded_text, maxlen = pad_pack(text_in)
-    padded_text = padded_text.to(device)
+  def forward(self, image, text_in, xmask):
+    #padded_text, maxlen = pad_pack(text_in)
+    #padded_text = padded_text.to(device)
     image_feature = self.encoder(image)
-    out = self.decoder(padded_text, image_feature, x_mask=triangle_mask(maxlen).to(device))
+    out = self.decoder(text_in, image_feature, x_mask=xmask)#triangle_mask(maxlen).to(device))
     return out
 
 # In[46]:
@@ -348,19 +348,22 @@ class SMILESGenerator(torch.nn.Module):
     return (text_in[0]), text_in[0], conf
 
 model = Image2SMILES(encoder, transformer)
-model.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet_medium4_3000.mod"))
-gen = SMILESGenerator(encoder, transformer, 128)
+
+continue_train = True
+if continue_train:
+    model.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet_medium0_3500.mod"))
+#gen = SMILESGenerator(encoder, transformer, 128)
 
 model = model.to(device)
-gen = gen.to(device)
+#gen = gen.to(device)
 
-print(torch.argmax(model(inp_img, [[2, 0]])[0,0]))
-print("output shape", (model(inp_img, [[2, 0]])).shape)
+
+
 
 # In[50]:
 
 
-gen(inp_img, [[77]])
+#gen(inp_img, [[77]])
 # In[51]:
 
 
@@ -371,7 +374,7 @@ def softmax(x):
 # In[52]:
 
 
-pylab.plot(softmax(model(inp_img, [[2, 0]])[0][0].cpu().detach().numpy()))
+
 # pylab.savefig("test.png")
 
 
@@ -440,7 +443,9 @@ def getitems(s, e):
   Xs_text = [i[1] for i in ans]
   y = [i[2] for i in ans]
   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
-  buffer.put(([Xs_img.to(device), pad_pack(Xs_text)[0]], pad_pack(y)[0].to(device)))
+  padded_x = pad_pack(Xs_text)
+  xmask = triangle_mask(padded_x[1]).to(device)
+  buffer.put(([Xs_img.to(device), padded_x[0].to(device)], pad_pack(y)[0].to(device), xmask))
 
 
 print("Started")
@@ -513,7 +518,7 @@ for epoch in range(30):
   model.train(True)
   running_loss = 0
   last_loss = 0
-  start = 3001 if epoch == 0 else 0
+  start = 3501 if epoch == 0 else 0
   p = threading.Thread(target=getitems, args=(start, len(files)//BATCH_SIZE-1))
   p.start() 
   for i in range(start, len(files)//BATCH_SIZE-1):
@@ -522,12 +527,12 @@ for epoch in range(30):
       print("WARNING: reading too slow")
 
 
-    (image, text_in), text_out = buffer.get(block=True)
+    (image, text_in), text_out, xmask = buffer.get(block=True)
 
     #image = image
     #text_out = text_out
     optimizer.zero_grad()
-    outputs = model(image, text_in)
+    outputs = model(image, text_in, xmask)
     loss = loss_fn(outputs, text_out)
     loss.backward()
 
@@ -539,8 +544,8 @@ for epoch in range(30):
         wandb.log({"loss": running_loss/20, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
         scheduler.step()
         running_loss = 0.
-    if i%200 == 0:
-      print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out]).cpu().detach().numpy()[0])]}")
+    #if i%200 == 0:
+    #  print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out], ).cpu().detach().numpy()[0])]}")
     
 
     if i%500 == 0:
