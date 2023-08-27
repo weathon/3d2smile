@@ -1,22 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Libs
-
-# In[1]:
-
-
-# git clone https://github.com/sergsb/IUPAC2Struct.git
-# pip install graphviz
-# pip install torchview
-# pip install torchinfo
-# pip install torchviz
-# !pip3 install pandas
-# !pip3 install tqdm
-# !pip3 install torchvision
-# In[2]:
-
-
 import torch, torchvision
 import os
 import numpy as np
@@ -24,8 +8,6 @@ import pylab
 import pandas
 import sys
 from PIL import Image
-# In[3]:
-
 
 try:
   import google.colab
@@ -42,9 +24,6 @@ else:
 
 
 sys.path.append("/home/wg25r/with_pretrain/IUPAC2Struct")
-
-# In[5]:
-
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -68,9 +47,6 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 
-# from config import get_config
-# from eval import Greedy_decode
-# from models import build_model
 from pre_transformer import Transformer
 
 
@@ -146,7 +122,6 @@ print(device)
 
 converter = deepsmiles.Converter(rings=True, branches=True)
 
-# [transformer_.word_map[i] for i in converter.encode("CC(=O)Nc1ccc(O)cc1")]
 
 # In[]
 def str_to_vector(s: str)->list:
@@ -157,10 +132,6 @@ def str_to_vector(s: str)->list:
 
 import os
 ids = [i.split("_")[0] for i in os.listdir("/arc/project/st-dushan20-1/rendered/rendered")]
-
-# with open("ids.txt", "w") as f:
-#     f.write("\n".join(list(set(ids))))
-
 
 
 # In[10]:
@@ -286,12 +257,6 @@ class ImageEncoder(torch.nn.Module):
     att = self.norm1(att + features)
     return self.projection(self.norm2(self.mlp(att) + features))
 
-# In[27]:
-
-
-# posem = torch.nn.Embedding(36, 512)
-# posem(torch.range(0, 36).unsqueeze(1))
-
 # In[28]:
 
 
@@ -315,24 +280,6 @@ sum(p.numel() for p in encoder.parameters())
 
 from torchinfo import summary
 print(summary(encoder, (1,3,400,400), depth=10))
-
-# quit()
-# In[31]:
-
-
-# from torchview import draw_graph
-
-# In[32]:
-
-
-# import graphviz
-# graphviz.set_jupyter_format('png')
-# encoder.to(device)
-# model_graph = draw_graph(encoder, input_size=(1, 3, 400, 400), depth=5, device=device)
-# # model_graph.visual_graph
-
-# # Connect with pretrained
-#
 
 
 inp_img = inp_img.to(device)
@@ -401,7 +348,6 @@ class SMILESGenerator(torch.nn.Module):
     return (text_in[0]), text_in[0], conf
 
 model = Image2SMILES(encoder, transformer)
-#model.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet_large2_0.mod")) #load_state_dict(torch.load("/scratch/st-dushan20-1/eff0_7400.mod")) #kunyunexnaoziyunlewangjileyiweiencoder shiyige nageshilingyigemoxing
 model.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet_medium4_3000.mod"))
 gen = SMILESGenerator(encoder, transformer, 128)
 
@@ -427,56 +373,17 @@ def softmax(x):
 
 pylab.plot(softmax(model(inp_img, [[2, 0]])[0][0].cpu().detach().numpy()))
 # pylab.savefig("test.png")
-# In[53]:
-
-
-
-# In[54]:
 
 
 sum(p.numel() for p in model. parameters() if not p.requires_grad)
 
-# # Training
-#
-
-# In[55]:
-
 
 import torch
 
-# /https://github.com/suanfaxiaohuo/SwinOCSR/blob/7c51d26a10a096bbf9c46113610e0ee5df75f250/model/Swin-transformer-focalloss/main.py#L53
-# class FocalLoss(torch.nn.Module):
-#     def __init__(self, alpha=0.25, gamma=2):
-#         super(FocalLoss, self).__init__()
-#         self.alpha = alpha
-#         self.gamma = gamma
-#         self.loss = nn.BCEWithLogitsLoss(reduction='none')
-
-#     def forward(self, inputs, targets):
-#         N = inputs.size(0)
-#         C = inputs.size(1)
-#         class_mask = inputs.data.new(N, C).fill_(0)
-#         class_mask = Variable(class_mask)
-#         ids = targets.view(-1, 1)
-#         targets_onehot = class_mask.scatter_(1, ids.data, 1.)
-#         positive_label_mask = torch.eq(targets_onehot, torch.Tensor([1]).cuda())
-#         sigmoid_cross_entropy = self.loss(inputs, targets_onehot)
-#         probs = torch.sigmoid(inputs)
-#         probs_gt = torch.where(positive_label_mask, probs, 1.0 - probs)
-#         # With small gamma, the implementation could produce NaN during back prop.
-#         modulator = torch.pow(1.0 - probs_gt, self.gamma)
-#         loss = modulator * sigmoid_cross_entropy
-#         weighted_loss = torch.where(positive_label_mask, self.alpha * loss,
-#                                  (1.0 - self.alpha) * loss)
-
-#         return weighted_loss.sum()
 from focal_loss.focal_loss import FocalLoss
 m = torch.nn.Softmax(dim=-1)
 lf = FocalLoss(gamma=2, ignore_index=0)#torch.nn.CrossEntropyLoss(label_smoothing=0.1, reduction="none")
 def loss_fn(pred, truth):
-  # mask = truth != 0
-  # pred = pred.permute(0,2,1) #WHY
-  # truth = torch.nn.functional.one_hot(truth, num_classes=len(transformer_.word_map.keys())).type(torch.float32).permute(0,2,1)
   pred = m(pred)
   l = lf(pred, truth)
   return l
@@ -487,48 +394,21 @@ def mask_acc(pred, truth):
     mask = truth != 0
     match_case = truth == pred
     return torch.sum(mask*match_case)/torch.sum(mask)
-# In[57]:
 
-
-def saveloss(loss_list):
-  pylab.clf()
-  print(len(loss_list))
-  pylab.scatter(np.arange(len(loss_list)), loss_list)
-  pylab.plot(np.arange(len(loss_list)), loss_list)
-  pylab.savefig("/scratch/st-dushan20-1/cos_loss.png")
-  with open("/scratch/st-dushan20-1/cos_loss.txt","w") as f:
-    f.write("\n".join([str(i) for i in loss_list]))
-
-# In[58]:
-
-
-sum(p.numel() for p in model.parameters() if not p.requires_grad)
-
-# In[59]:
 
 
 import pickle
-#with open("Ys.pkl","wb") as f:
-#  pickle.dump(Ys, f)
-#os.system("cp Ys.pkl drive/MyDrive/")
-
-# In[60]:
-
 
 _ = list(map(lambda x: np.exp(-0.1*x)+np.random.normal()*0.001*x, list(range(100))))
 saveloss(_)
 
-# In[61]:
 
-
-
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 files = os.listdir(f"{HOME_DIR}/rendered/")
 files = [i for i in files if len(i)<=40]
 import multiprocessing, threading
 import queue
 import time
-# data_reader, trainer = multiprocessing.Pipe()
 buffer = queue.Queue(maxsize=10) #need maxsize=10, otherwise put will also block
 start_index = 0
 
@@ -540,14 +420,10 @@ def process_single(arg):
     except:
       return
     index = start_index + _
-    #img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32")
     img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
     noise = np.random.uniform(size=img.shape)*20
     img += noise
     return img, [77] + Ys[id], Ys[id] + [78]
-    # Xs_img.append(img)
-    # Xs_text.append([77] + Ys[id])
-    # y.append(Ys[id] + [78])
 
 def getitems(s, e):
  for index in range(s, e):
@@ -566,8 +442,7 @@ def getitems(s, e):
   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
   buffer.put(([Xs_img.to(device), pad_pack(Xs_text)[0].to(device)], pad_pack(y)[0].to(device)))
 
-#p = threading.Thread(target=getitem, args=(0,)) #It says threading no process, did i used the wrong li
-#p.start()
+
 print("Started")
 # buffer.get()
 
@@ -598,13 +473,6 @@ ans = pool.map(task, range(10))
 pool.close()
 list(filter(lambda x: not x is None, ans))
 
-# In[65]:
-
-
-#p = threading.Thread(target=getitem, args=(0,)) #FUCK I KNOW because here is proess touyunchaojieks
-# p = multiprocessing.Process(target=getitem, args=(0,)) #FUCK I KNOW because here is proess touyunchaojieks
-#p.start()
-#p.join()
 buffer.empty()
 
 # In[70]:
@@ -614,24 +482,12 @@ buffer.empty()
 
 # https://stackoverflow.com/questions/51801648/how-to-apply-layer-wise-learning-rate-in-pytorch
 optimizer = torch.optim.AdamW(
-    #   [
-    #    {"params": model.encoder.eff.parameters()},
-    #     {"params": model.encoder.mlp.parameters()},
-    #     {"params": model.encoder.mha.parameters()},
-    #     {"params": model.encoder.norm1.parameters()},
-    #     {"params": model.encoder.norm2.parameters()},
-    #     {"params": model.encoder.projection.parameters()},
-    #     # {"params": model.decoder.parameters(), "lr":5e-8},
-    # ]
     model.parameters(),
-  #  betas=(0.9999, 0.999),
    lr=0.00025)
 
 
 scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99986)
-#scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10, threshold=0.005, factor=0.9)#torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 4000, eta_min=0.0000003, verbose=0)
-#.CosineAnnealingLR(optimizer, verbose=True)
-#torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.7, verbose=True)
+
 
 
 loss_list = []
@@ -642,9 +498,6 @@ while not buffer.empty():
   buffer.get()
 
 
-
-#p.start()
-#p.join()
 
 import wandb
 
@@ -662,23 +515,17 @@ for epoch in range(30):
   last_loss = 0
   start = 3001 if epoch == 0 else 0
   p = threading.Thread(target=getitems, args=(start, len(files)//BATCH_SIZE-1))
-  p.start() #forgot this 
+  p.start() 
   for i in range(start, len(files)//BATCH_SIZE-1):
-    #if i != len(files)//BATCH_SIZE-1: #I got it why it stoped running on the last batch, i do not need the -1 actually put the -1 back so that it wil be the same but also -1 on the top chaojiyunshoutongkuenx
-    #  p = threading.Thread(target=getitem, args=(i+1,))
-    #  p.start()
-
     loaded = not buffer.empty()
     if not loaded:
       print("WARNING: reading too slow")
 
 
     (image, text_in), text_out = buffer.get(block=True)
-    # if not loaded:
-    #   print("Loaded")
 
-    image = image#.to(device)
-    text_out = text_out#.to(device)
+    image = image
+    text_out = text_out
     optimizer.zero_grad()
     outputs = model(image, text_in)
     loss = loss_fn(outputs, text_out)
@@ -687,35 +534,14 @@ for epoch in range(30):
     optimizer.step()
 
     running_loss += loss.item()
-    # if i%3 == 2:
-    #iprint(f"Training loss: {loss.item()}") #first time loss is small because it is dived by 10 where there is only 1
-    #loss_list.append(loss.item())
-    #isaveloss(loss_list)i
+
     if i%20==19:
         wandb.log({"loss": running_loss/20, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
         scheduler.step()
-        """        
-with open("/scratch/st-dushan20-1/lr.txt", "r") as f:
-          lr = float(f.read())
-          if not lr < 0:
-            optimizer.param_groups[0]['lr'] = lr
-          else:
-            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']*0.9999
-            if optimizer.param_groups[0]['lr'] <= 7e-6:
-              optimizer.param_groups[0]['lr'] = 0.0003
-        with open("/scratch/st-dushan20-1/lr.txt", "w") as f:
-          f.write("-1")"""
-        
-        # print(running_loss/10)
         running_loss = 0.
     if i%200 == 0:
-      #print(f"Example Output: {gen(inp_img, [[77]])}")
       print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out]).cpu().detach().numpy()[0])]}")
-      #iprint(f"Example Output: {(inp_img, [[77]])}")
     
-    #if i%10 == 9:
-    #	scheduler.step()
 
     if i%500 == 0:
         torch.save(model.state_dict(), f"/scratch/st-dushan20-1/effnet_medium{epoch}_{i}.mod")
-      #print(f"New learning rate: {optimizer.param_groups[0]['lr']}")
