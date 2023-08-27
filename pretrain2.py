@@ -566,8 +566,8 @@ def getitems(s, e):
   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
   buffer.put(([Xs_img, pad_pack(Xs_text)[0]], pad_pack(y)[0]))
 
-p = threading.Thread(target=getitem, args=(0,)) #It says threading no process, did i used the wrong li
-p.start()
+#p = threading.Thread(target=getitem, args=(0,)) #It says threading no process, did i used the wrong li
+#p.start()
 print("Started")
 # buffer.get()
 
@@ -601,10 +601,10 @@ list(filter(lambda x: not x is None, ans))
 # In[65]:
 
 
-p = threading.Thread(target=getitem, args=(0,)) #FUCK I KNOW because here is proess touyunchaojieks
+#p = threading.Thread(target=getitem, args=(0,)) #FUCK I KNOW because here is proess touyunchaojieks
 # p = multiprocessing.Process(target=getitem, args=(0,)) #FUCK I KNOW because here is proess touyunchaojieks
-p.start()
-p.join()
+#p.start()
+#p.join()
 buffer.empty()
 
 # In[70]:
@@ -643,8 +643,8 @@ while not buffer.empty():
 
 
 
-p.start()
-p.join()
+#p.start()
+#p.join()
 
 import wandb
 
@@ -661,7 +661,8 @@ for epoch in range(30):
   running_loss = 0
   last_loss = 0
   start = 3001 if epoch == 0 else 0
-  p = threading.Thread(target=getitems, args=(start, len(files)//BATCH_SIZE-1)) 
+  p = threading.Thread(target=getitems, args=(start, len(files)//BATCH_SIZE-1))
+  p.start() #forgot this 
   for i in range(start, len(files)//BATCH_SIZE-1):
     #if i != len(files)//BATCH_SIZE-1: #I got it why it stoped running on the last batch, i do not need the -1 actually put the -1 back so that it wil be the same but also -1 on the top chaojiyunshoutongkuenx
     #  p = threading.Thread(target=getitem, args=(i+1,))
@@ -718,4 +719,3 @@ with open("/scratch/st-dushan20-1/lr.txt", "r") as f:
     if i%500 == 0:
         torch.save(model.state_dict(), f"/scratch/st-dushan20-1/effnet_medium{epoch}_{i}.mod")
       #print(f"New learning rate: {optimizer.param_groups[0]['lr']}")
-wg25r@login02:~/with_pretrain$ 
