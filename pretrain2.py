@@ -400,7 +400,7 @@ def mask_acc(pred, truth):
 import pickle
 
 _ = list(map(lambda x: np.exp(-0.1*x)+np.random.normal()*0.001*x, list(range(100))))
-saveloss(_)
+#saveloss(_)
 
 
 BATCH_SIZE = 16
@@ -440,7 +440,7 @@ def getitems(s, e):
   Xs_text = [i[1] for i in ans]
   y = [i[2] for i in ans]
   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
-  buffer.put(([Xs_img.to(device), pad_pack(Xs_text)[0].to(device)], pad_pack(y)[0].to(device)))
+  buffer.put(([Xs_img.to(device), pad_pack(Xs_text)[0]], pad_pack(y)[0].to(device)))
 
 
 print("Started")
@@ -524,8 +524,8 @@ for epoch in range(30):
 
     (image, text_in), text_out = buffer.get(block=True)
 
-    image = image
-    text_out = text_out
+    #image = image
+    #text_out = text_out
     optimizer.zero_grad()
     outputs = model(image, text_in)
     loss = loss_fn(outputs, text_out)
