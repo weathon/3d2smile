@@ -430,8 +430,7 @@ def process_single(arg):
     img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32") #cannot read image? quota reached?
     print("image")
     # # img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
-    # img = torch.permute(torch.tensor(np.array(img)), (2, 0, 1)) #image read so this was the one not working??? what WHAT WHY THIS CANNOT BE HERE # and printing the process let me relized how slow it is and whtch step  kunyunex shi shui ie
-    # jieshu dao print int nali kunduzikunexkouke jiaosanun leng suoyi shi ppool.map haoshijian 
+    # img = torch.permute(torch.tensor(np.array(img)), (2, 0, 1)) #image read so this was the one not working??? what WHAT WHY THIS CANNOT BE HERE 
     # # noise = np.random.uniform(size=img.shape)*20
     # img += noise
     print(8)
@@ -450,7 +449,7 @@ def getitems(s, e, b):
 
   # pool = Pool()
   ans = list(map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE)))
-  # pool.close() xueyakunyun jizhezou aaaa why 
+  # pool.close()
   print("Pool Closed")
   Xs_img = torch.tensor([i[0] for i in ans])
   Xs_img = torch.permute(Xs_img, (0, 3, 1, 2))
