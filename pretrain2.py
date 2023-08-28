@@ -314,6 +314,7 @@ class Image2SMILES(torch.nn.Module):
   def forward(self, image, text_in, xmask):
     #padded_text, maxlen = pad_pack(text_in)
     #padded_text = padded_text.to(device)
+    # image = torch.permute(torch.tensor(np.array(image)), (0,3,1,2))
     image_feature = self.encoder(image)
     out = self.decoder(text_in, image_feature, x_mask=xmask)#triangle_mask(maxlen).to(device))
     return out
@@ -406,7 +407,7 @@ _ = list(map(lambda x: np.exp(-0.1*x)+np.random.normal()*0.001*x, list(range(100
 #saveloss(_)
 
 
-BATCH_SIZE = 16
+BATCH_SIZE = 4
 files = os.listdir(f"{HOME_DIR}/rendered/")
 files = [i for i in files if len(i)<=40]
 import multiprocessing, threading
@@ -417,69 +418,43 @@ buffer = Queue(maxsize=10) #need maxsize=10, otherwise put will also block
 start_index = 0
 
 def process_single(arg):
+    # print(arg)
     _, start_index = arg
     index = start_index + _
     try:
       id = int(files[index].split("_")[0])
     except:
       return
-    index = start_index + _
-    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
-    noise = np.random.uniform(size=img.shape)*20
-    img += noise
+    # index = start_index + _ #why commented this 
+    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32")
+    # # img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
+    img = torch.permute(torch.tensor(np.array(img)), (2, 0, 1))
+    # # noise = np.random.uniform(size=img.shape)*20
+    # img += noise
+    print(8)
     return img, [77] + Ys[id], Ys[id] + [78]
 
-try:
-  torch.multiprocessing.set_start_method('spawn')
-except:
-  pass
+
 
 def getitems(s, e, b):
 #  print(s, e)
  for index in range(s, e):
-  # print(index)
+  print(index)
   start_index = index * BATCH_SIZE
   Xs_img = []
   Xs_text = []
   y = [] #This is slow, rewrite later
 
-  # print("pool open")
   pool = Pool()
   ans = pool.map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE))
   pool.close()
-  # print("pool closed")
-  Xs_img = [i[0] for i in ans]
+  print("Pool Closed")
+  Xs_img = torch.tensor([i[0] for i in ans])
   Xs_text = [i[1] for i in ans]
   y = [i[2] for i in ans]
 
-  Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
+  b.put(([Xs_img, Xs_text], pad_pack(y)[0]))
 
-  padded_x = pad_pack(Xs_text)
-
-  xmask = triangle_mask(padded_x[1])#.to(device)
-  # print(([Xs_img.to(device), padded_x[0].to(device)], pad_pack(y)[0].to(device), xmask))
-  # b.put(([Xs_img.to(device), padded_x[0].to(device)], pad_pack(y)[0].to(device), xmask))
-  b.put(([Xs_img, padded_x[0]], pad_pack(y)[0], xmask))
-
-# def getitems(s, e):
-#   index = 0
-#   start_index = index * BATCH_SIZE
-#   Xs_img = []``
-#   Xs_text = []
-#   y = [] #This is slow, rewrite later
-
-#   pool = multiprocessing.Pool()
-#   ans = pool.map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE))
-#   pool.close()
-
-#   Xs_img = [i[0] for i in ans]
-#   Xs_text = [i[1] for i in ans]
-#   y = [i[2] for i in ans]
-#   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
-#   padded_x = pad_pack(Xs_text)
-#   xmask = triangle_mask(padded_x[1]).to(device)
-#   for index in range(s, e):
-#    buffer.put(([Xs_img.to(device), padded_x[0].to(device)], pad_pack(y)[0].to(device), xmask))
 
  
 
@@ -562,10 +537,13 @@ for epoch in range(30):
       print("WARNING: reading too slow")
 
 
-    (image, text_in), text_out, xmask = buffer.get(block=True)
-    image, text_in, text_out, xmask = image.to(device), text_in.to(device), text_out.to(device), xmask.to(device) #mutli process cannot use cuda so moved here
-    #image = image
-    #text_out = text_out
+    (image, text_in), text_out = buffer.get(block=True)
+    image, text_out = image.to(device), text_out.to(device) #mutli process cannot use cuda so moved here
+
+    padded_x = pad_pack(text_in)
+
+    xmask = triangle_mask(padded_x[1]).to(device)
+    text_in = padded_x[0].to(device)
     optimizer.zero_grad()
     outputs = model(image, text_in, xmask)
     loss = loss_fn(outputs, text_out)
