@@ -410,9 +410,9 @@ BATCH_SIZE = 16
 files = os.listdir(f"{HOME_DIR}/rendered/")
 files = [i for i in files if len(i)<=40]
 import multiprocessing, threading
-import queue
+from multiprocessing import Process, Queue
 import time
-buffer = queue.Queue(maxsize=10) #need maxsize=10, otherwise put will also block
+buffer = Queue(maxsize=10) #need maxsize=10, otherwise put will also block
 start_index = 0
 
 def process_single(arg):
@@ -428,7 +428,7 @@ def process_single(arg):
     img += noise
     return img, [77] + Ys[id], Ys[id] + [78]
 
-def getitems(s, e):
+def getitems(s, e, b):
  for index in range(s, e):
   start_index = index * BATCH_SIZE
   Xs_img = []
@@ -445,8 +445,29 @@ def getitems(s, e):
   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
   padded_x = pad_pack(Xs_text)
   xmask = triangle_mask(padded_x[1]).to(device)
-  buffer.put(([Xs_img.to(device), padded_x[0].to(device)], pad_pack(y)[0].to(device), xmask))
+  b.put(([Xs_img.to(device), padded_x[0].to(device)], pad_pack(y)[0].to(device), xmask))
 
+# def getitems(s, e):
+#   index = 0
+#   start_index = index * BATCH_SIZE
+#   Xs_img = []
+#   Xs_text = []
+#   y = [] #This is slow, rewrite later
+
+#   pool = multiprocessing.Pool()
+#   ans = pool.map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE))
+#   pool.close()
+
+#   Xs_img = [i[0] for i in ans]
+#   Xs_text = [i[1] for i in ans]
+#   y = [i[2] for i in ans]
+#   Xs_img = torch.permute(torch.tensor(np.array(Xs_img)), (0,3,1,2))
+#   padded_x = pad_pack(Xs_text)
+#   xmask = triangle_mask(padded_x[1]).to(device)
+#   for index in range(s, e):
+#    buffer.put(([Xs_img.to(device), padded_x[0].to(device)], pad_pack(y)[0].to(device), xmask))
+
+ 
 
 print("Started")
 # buffer.get()
@@ -488,10 +509,10 @@ buffer.empty()
 # https://stackoverflow.com/questions/51801648/how-to-apply-layer-wise-learning-rate-in-pytorch
 optimizer = torch.optim.AdamW(
     model.parameters(),
-   lr=0.00025)
+   lr=0.00019)
 
 
-scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99986)
+scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99985)
 
 
 
@@ -519,7 +540,7 @@ for epoch in range(30):
   running_loss = 0
   last_loss = 0
   start = 3501 if epoch == 0 else 0
-  p = threading.Thread(target=getitems, args=(start, len(files)//BATCH_SIZE-1))
+  p = Process(target=getitems, args=(start, len(files)//BATCH_SIZE-1, buffer))
   p.start() 
   for i in range(start, len(files)//BATCH_SIZE-1):
     loaded = not buffer.empty()
@@ -549,4 +570,4 @@ for epoch in range(30):
     
 
     if i%500 == 0:
-        torch.save(model.state_dict(), f"/scratch/st-dushan20-1/effnet_medium{epoch}_{i}.mod")
+        torch.save(model.state_dict(), f"/scratch/st-dushan20-1/3_effnet_medium{epoch}_{i}.mod")
