@@ -18,7 +18,7 @@ except:
 if IN_COLAB:
     HOME_DIR = "/content"
 else:
-    HOME_DIR = "/arc/project/st-dushan20-1/rendered"
+    HOME_DIR = "/arc/burst/st-dushan20-1/"
 
 # In[4]:
 
@@ -352,7 +352,7 @@ model = Image2SMILES(encoder, transformer)
 
 continue_train = True
 if continue_train:
-    model.load_state_dict(torch.load("/scratch/st-dushan20-1/effnet_medium2_11000.mod"))
+    model.load_state_dict(torch.load("/scratch/st-dushan20-1/3_effnet_medium2_19500.mod", map_location=device))
 #gen = SMILESGenerator(encoder, transformer, 128)
 
 model = model.to(device)
@@ -395,6 +395,7 @@ def loss_fn(pred, truth):
 
 def mask_acc(pred, truth):
     pred = torch.argmax(pred, -1)
+#ME
     mask = truth != 0
     match_case = truth == pred
     return torch.sum(mask*match_case)/torch.sum(mask)
@@ -407,7 +408,7 @@ _ = list(map(lambda x: np.exp(-0.1*x)+np.random.normal()*0.001*x, list(range(100
 #saveloss(_)
 
 
-BATCH_SIZE = 4
+BATCH_SIZE = 16
 files = os.listdir(f"{HOME_DIR}/rendered/")
 files = [i for i in files if len(i)<=40]
 import multiprocessing, threading
@@ -416,7 +417,7 @@ from torch.multiprocessing import Process, Queue, Pool
 import time
 buffer = Queue(maxsize=10) #need maxsize=10, otherwise put will also block
 start_index = 0
-
+import cv2
 def process_single(arg):
     # print(arg)
     _, start_index = arg
@@ -425,40 +426,81 @@ def process_single(arg):
       id = int(files[index].split("_")[0])
     except:
       return
-    print("-")
+    # print("-")
     # index = start_index + _ #why commented this 
-    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32") #cannot read image? quota reached?
-    print("image")
+    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}")) #cannot read image? quota reached?
+    # print("image")
     # # img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
-    # img = torch.permute(torch.tensor(np.array(img)), (2, 0, 1)) #image read so this was the one not working??? what WHAT WHY THIS CANNOT BE HERE 
+    # img = torch.permute(torch.tensor(np.array(img)), (2, 0, 1)) #image read so this was the one not working??? what WHAT WHY THIS CANNOT BE HERE # and printing the process let me relized how slow it is and whtch step  kunyunex shi shui ie
+    # jieshu dao print int nali kunduzikunexkouke jiaosanun leng suoyi shi ppool.map haoshijian 
     # # noise = np.random.uniform(size=img.shape)*20
     # img += noise
-    print(8)
+    # print(8)
     return img, [77] + Ys[id], Ys[id] + [78]
 
+#pool = Pool()
 
 
-def getitems(s, e, b):
-#  print(s, e)
- for index in range(s, e):
-  print(index)
-  start_index = index * BATCH_SIZE
-  Xs_img = []
-  Xs_text = []
-  y = [] #This is slow, rewrite later
+#read all images
+images_warehouse = []
+index = 0
+import time
+t0 = time.time()
+import os, psutil
+process = psutil.Process()
+# https://stackoverflow.com/questions/938733/total-memory-used-by-python-process
 
-  # pool = Pool()
-  ans = list(map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE)))
-  # pool.close()
-  print("Pool Closed")
-  Xs_img = torch.tensor([i[0] for i in ans])
-  Xs_img = torch.permute(Xs_img, (0, 3, 1, 2))
-  Xs_text = [i[1] for i in ans]
-  y = [i[2] for i in ans]
-
-  b.put(([Xs_img, Xs_text], pad_pack(y)[0]))
+# for i in files:
+#   img = np.array(Image.open(f"{HOME_DIR}/rendered/{i}"), dtype="float32")
+#   images_warehouse.append(img)
+#   if index % 5000 == 0:
+#     print(f"Read {index} in {time.time()-t0} seconds and used {process.memory_info().rss/1024/1024} MB")
+#   index+=1
 
 
+# def process_single(arg):
+#     # print(arg)
+#     _, start_index = arg
+#     index = start_index + _
+#     try:
+#       id = int(files[index].split("_")[0])
+#     except:
+#       return
+#     # print("-")
+#     # index = start_index + _ #why commented this 
+#     img = np.array(images_warehouse[index])
+#     # np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}"), dtype="float32") #cannot read image? quota reached?
+#     # print("image")
+#     # # img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}").rotate(np.random.uniform(0,360), expand = 1).resize((400,400)), dtype="float32")
+#     # img = torch.permute(torch.tensor(np.array(img)), (2, 0, 1)) #image read so this was the one not working??? what WHAT WHY THIS CANNOT BE HERE # and printing the process let me relized how slow it is and whtch step  kunyunex shi shui ie
+#     # jieshu dao print int nali kunduzikunexkouke jiaosanun leng suoyi shi ppool.map haoshijian 
+#     # # noise = np.random.uniform(size=img.shape)*20
+#     # img += noise
+#     # print(8)
+#     return img, [77] + Ys[id], Ys[id] + [78]
+
+# def getitems(s, e, b):
+# #  print(s, e)
+#  pool = Pool()
+#  for index in range(s, e):
+#   # print(index)
+#   start_index = index * BATCH_SIZE
+#   Xs_img = []
+#   Xs_text = []
+#   y = [] #This is slow, rewrite later
+
+#   #pool = Pool()
+#   ans = list(map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE)))
+#   #pool.close() xueyakunyun jizhezou aaaa why 
+#   ##print("Pool Closed")
+#   Xs_img = torch.tensor([i[0] for i in ans],  dtype=torch.float32)
+ 
+#   Xs_text = [i[1] for i in ans]
+#   y = [i[2] for i in ans]
+
+#   b.put(([Xs_img, Xs_text], y))
+
+#  pool.close()
  
 
 print("Started")
@@ -501,7 +543,7 @@ buffer.empty()
 # https://stackoverflow.com/questions/51801648/how-to-apply-layer-wise-learning-rate-in-pytorch
 optimizer = torch.optim.AdamW(
     model.parameters(),
-   lr=0.00019)
+   lr=0.00009)
 
 
 scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99985)
@@ -524,25 +566,48 @@ wandb.init(
     config={"changes":"eff with att Pretrained Model For Images","scheduler": "cus","lr":0.0007,"T0":200,"betas":"0.999,0.9995"}
 )
 
-
+def getitem(i):
+ imgs = []
+ ti = []
+ to = []
+ for i in range(i, i+BATCH_SIZE):
+    index = i
+    try:
+      id = int(files[index].split("_")[0])
+    except:
+      return
+    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}")) #cannot read image? quota reached?
+    imgs.append(img)
+    ti.append([77] + Ys[id])
+    to.append(Ys[id] + [78])
+ return torch.tensor(np.array(imgs), dtype=torch.float32), ti, to
 for epoch in range(30):
   np.random.shuffle(files)
   print('EPOCH {}:'.format(epoch + 1))
   model.train(True)
   running_loss = 0
   last_loss = 0
-  start = 11001 if epoch == 0 else 0
-  p = Process(target=getitems, args=(start, len(files)//BATCH_SIZE-1, buffer))
-  p.start() 
-  for i in range(start, len(files)//BATCH_SIZE-1):
-    loaded = not buffer.empty()
-    if not loaded:
-      print("WARNING: reading too slow")
+  start = 6001 if epoch == 0 else 0
+  #p = Process(target=getitems, args=(start, len(files)//BATCH_SIZE-1, buffer))
+  #p.start() 
+  for i in range(start, start + 10):
+    t0 = time.time()
+    start_index = i * BATCH_SIZE
+    Xs_img = []
+    Xs_text = []
+    y = [] 
 
-
-    (image, text_in), text_out = buffer.get(block=True)
-    image, text_out = image.to(device), text_out.to(device) #mutli process cannot use cuda so moved here
-
+    #ans = list(map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE)))
+    #Xs_img = torch.tensor([i[0] for i in ans],  dtype=torch.float32)
+  
+    #text_in = [i[1] for i in ans]
+    #text_out = [i[2] for i in ans]
+    Xs_img, text_in, text_out = getitem(start_index)
+    print(f"File Reading Time: {time.time()-t0}")
+    t0 = time.time()
+    image = Xs_img.to(device) #mutli process cannot use cuda so moved here
+    image = torch.permute(image, (0, 3, 1, 2)) 
+    text_out = pad_pack(text_out)[0].to(device)
     padded_x = pad_pack(text_in)
 
     xmask = triangle_mask(padded_x[1]).to(device)
@@ -555,14 +620,55 @@ for epoch in range(30):
     optimizer.step()
 
     running_loss += loss.item()
-
-    if i%20==19:
-        wandb.log({"loss": running_loss/20, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
+    print(f"Training: {time.time()-t0}")
+    
+    if i%10==9:
+        wandb.log({"loss": running_loss/10, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
         scheduler.step()
         running_loss = 0.
     #if i%200 == 0:
     #  print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out], ).cpu().detach().numpy()[0])]}")
     
 
-    if i%500 == 0:
+    if i%1000 == 0:
+        torch.save(model.state_dict(), f"/scratch/st-dushan20-1/3_effnet_medium{epoch}_{i}.mod")
+
+  for i in range(10, len(files)//BATCH_SIZE-1):
+    start_index = i * BATCH_SIZE
+    Xs_img = []
+    Xs_text = []
+    y = [] 
+
+    #ans = list(map(process_single, zip(range(BATCH_SIZE), [start_index]*BATCH_SIZE)))
+    #Xs_img = torch.tensor(np.array([i[0] for i in ans]),  dtype=torch.float32)
+  
+    #text_in = [i[1] for i in ans]
+    #text_out = [i[2] for i in ans]
+    Xs_img, text_in, text_out = getitem(start_index)
+    
+    image = Xs_img.to(device) #mutli process cannot use cuda so moved here
+    image = torch.permute(image, (0, 3, 1, 2)) 
+    text_out = pad_pack(text_out)[0].to(device)
+    padded_x = pad_pack(text_in)
+
+    xmask = triangle_mask(padded_x[1]).to(device)
+    text_in = padded_x[0].to(device)
+    optimizer.zero_grad()
+    outputs = model(image, text_in, xmask)
+    loss = loss_fn(outputs, text_out)
+    loss.backward()
+
+    optimizer.step()
+
+    running_loss += loss.item()
+    
+    if i%10==9:
+        wandb.log({"loss": running_loss/10, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
+        scheduler.step()
+        running_loss = 0.
+    #if i%200 == 0:
+    #  print(f"Output With Teacher Forcing: {[np.argmax(i) for i in softmax(model(inp_img, [[77]+example_out], ).cpu().detach().numpy()[0])]}")
+    
+
+    if i%1000 == 0:
         torch.save(model.state_dict(), f"/scratch/st-dushan20-1/3_effnet_medium{epoch}_{i}.mod")
