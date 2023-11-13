@@ -188,9 +188,19 @@ def mask_acc(pred, truth):
 
 import pickle
 
-BATCH_SIZE = 8
-files = os.listdir(f"./rendered/")
-files = [i for i in files if len(i)<=40]
+BATCH_SIZE = 16
+files_ = os.listdir(f"./rendered/")
+files = []
+testing_files = []
+
+files_ = [i for i in files_ if len(i)<=40]
+
+for i in files_:
+    if int(i.split("_")[0])%200==0:
+        testing_files.append(i)
+    else:
+        files.append(i)
+
 import multiprocessing, threading
 #https://stackoverflow.com/questions/48822463/how-to-use-pytorch-multiprocessing
 from torch.multiprocessing import Process, Queue, Pool
@@ -198,16 +208,6 @@ import time
 buffer = Queue(maxsize=10) #need maxsize=10, otherwise put will also block
 start_index = 0
 import cv2
-def process_single(arg):
-    # print(arg)
-    _, start_index = arg
-    index = start_index + _
-    try:
-      id = int(files[index].split("_")[0])
-    except:
-      return
-    img = np.array(Image.open(f"{HOME_DIR}/rendered/{files[index]}")) #cannot read image? quota reached?
-    return img, [77] + Ys[id], Ys[id] + [78]
 
 images_warehouse = []
 index = 0
@@ -367,10 +367,13 @@ for i in transformer_.word_map.keys():
 
 import wandb
 print("Started")
-
+wandb.init(config={
+        "lr": 0.0002,
+        "gamma": 0.99987
+})
 optimizer = torch.optim.AdamW(
    model.parameters(),
-   lr=0.0003)
+   lr=0.0002)
 
 
 scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99987)
@@ -379,19 +382,35 @@ scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99987)
 loss_list = []
 model.to(device)
 
+TRAIN = 0
+TEST = 1
 
-def getitem(i):
+import random
+
+def getitem(i, mode=TRAIN):
  imgs = []
  ti = []
  to = []
+ if mode == TRAIN:
+  local_files = files
+ else:
+  local_files = testing_files
  for i in range(i, i+BATCH_SIZE):
     index = i
     try:
-      id = int(files[index].split("_")[0])
+      id = int(local_files[index].split("_")[0])
     except:
       return
     try:
-     img = np.array(Image.open(f"./rendered/{files[index]}")) #cannot read image? quota reached?
+     img = Image.open(f"./rendered/{local_files[index]}") #cannot read image? quota reached?
+     if mode==TRAIN:
+         img = Image.rotate(img, random.random()*360, expand=1)
+         img = np.array(img)
+         img[:,:,0] *= random.random()*0.2+0.9
+         img[:,:,1] *= random.random()*0.2+0.9
+         img[:,:,2] *= random.random()*0.2+0.9
+     else:
+         img = np.array(img)
      imgs.append(img)
      ti.append([77] + Ys[id])
      to.append(Ys[id] + [78])
@@ -453,6 +472,7 @@ for epoch in range(30):
   model.train(True)
 
   for i in range(10, len(files)//BATCH_SIZE):
+    start_index = i * BATCH_SIZE # forget this touyunhl
     image, text_in, text_out = getitem(start_index)
 
     image = image.to(device) #mutli process cannot use cuda so moved here
@@ -465,7 +485,9 @@ for epoch in range(30):
 
     optimizer.zero_grad()
     outputs = model(image, text_in, xmask)
+    #loss = loss_fn(outputs, text_outi) guaibude yyixiazinamegao
     loss = loss_fn(outputs, text_out)
+
     loss.backward()
 
     optimizer.step()
@@ -478,7 +500,10 @@ for epoch in range(30):
     if i%10 == 9:
         scheduler.step()
 
-    if i == 10:
+    if i%1000 == 10:
+        torch.save(model, f"{BATCH}_{i}.pt")
+        for param in gen.parameters():
+            param.requires_grad = False
         model.train(False)
         loss_ = 0
         acc_ = 0
@@ -488,7 +513,7 @@ for epoch in range(30):
             correct = "".join([reversed_word_map[i] for i in text_out[0].detach().cpu().numpy()]).replace("<end>","").replace("<start>","").replace("<pad>","")
             print(f"tf:\t{tf}\n bs:\t{bs}\n correct:\t{correct}\n")
 
-            Xs_img, text_in, text_out = getitem(ii * BATCH_SIZE)
+            Xs_img, text_in, text_out = getitem(ii * BATCH_SIZE, mode=TEST)
             image = Xs_img.to(device)
             image = torch.permute(image, (0, 3, 1, 2))
             text_out = pad_pack(text_out)[0].to(device)
@@ -502,7 +527,8 @@ for epoch in range(30):
             acc_ += mask_acc(outputs.detach(), text_out)
         wandb.log({"val_loss": loss/10, "val_acc":acc_/10})
         model.train(True)
-
+        for param in gen.parameters():
+            param.requires_grad = True #False
 import pylab
 keys = ans.keys()
 values = ans.values()
