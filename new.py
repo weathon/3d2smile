@@ -138,7 +138,7 @@ class FocalLossModelInference:
                            drop_rate=self.dropout,
                            tag=False)
 transformer_ = FocalLossModelInference()
-transformer = transformer_.build_decoder().decoder
+transformer = transformer_.decoder
 
 converter = deepsmiles.Converter(rings=True, branches=True)
 
@@ -237,8 +237,11 @@ example_out = csv[csv["cid"]==6912034]["canonicalsmiles"].values[0]
 example_out = str_to_vector(example_out)
 import numpy as np
 
-eff = torchvision.models.efficientnet_v2_l(weights='DEFAULT')
+eff = torchvision.models.efficientnet_v2_s(weights='DEFAULT')
 mynet = eff.features
+#swin = torchvision.models.swin_t(weights='DEFAULT')
+#swin.head = swin.avgpool = swin.flatten = torch.nn.Identity()
+#mynet = swin
 class ImageEncoder(torch.nn.Module):
   def __init__(self):
     super().__init__()
@@ -298,7 +301,7 @@ class SMILESGenerator(torch.nn.Module):
     super().__init__()
     self.encoder = encoder
     self.decoder = decoder
-
+    self.decoder.encoder_dim = torch.nn.Identity(iwallalalalalalala="WTF")
   def forward(self, image, text_in_, max_len, beam): #just changed beam=1 and it runs so beam cannot be random number???  yeah it has to been factor of 676, which is 2 2 13 13 but original paper did not use beam search
     image_feature = self.encoder(image)
     top_n = list([list(i) for i in torch.tensor(text_in_).repeat(beam,1).detach().cpu().numpy()])
@@ -368,6 +371,8 @@ for i in transformer_.word_map.keys():
 import wandb
 print("Started")
 wandb.init(config={
+  "model" : "with encoder",
+  "image_size": 400,
         "lr": 0.0002,
         "gamma": 0.99987
 })
@@ -404,13 +409,18 @@ def getitem(i, mode=TRAIN):
     try:
      img = Image.open(f"./rendered/{local_files[index]}") #cannot read image? quota reached?
      if mode==TRAIN:
-         img = Image.rotate(img, random.random()*360, expand=1)
-         img = np.array(img)
+         #img = Image.rotate(img, random.random()*360, expand=1)
+         img = img.rotate(random.random()*360, expand=1).resize((400, 400)) #forget img =
+         img = np.array(img, dtype="float32")
          img[:,:,0] *= random.random()*0.2+0.9
          img[:,:,1] *= random.random()*0.2+0.9
          img[:,:,2] *= random.random()*0.2+0.9
      else:
          img = np.array(img)
+     #if train:
+     #  for _ in range(5):
+     #    x,y = int(random.random()*380),int(random.random()*380)
+     #    img[x:x+20, y:y+20,:] = np.random.normal(size=(20,20,3))*200
      imgs.append(img)
      ti.append([77] + Ys[id])
      to.append(Ys[id] + [78])
@@ -494,14 +504,14 @@ for epoch in range(30):
 
     running_loss += loss.item()
 
-    if i%100==99:
+    if i%20==19:
         wandb.log({"loss": running_loss/100, "acc":mask_acc(outputs.detach(), text_out), "lr": optimizer.param_groups[0]['lr']})
         running_loss = 0.
     if i%10 == 9:
         scheduler.step()
 
     if i%1000 == 10:
-        torch.save(model, f"{BATCH}_{i}.pt")
+        torch.save(model, f"eff_s_{epoch}_{i}.pt")
         for param in gen.parameters():
             param.requires_grad = False
         model.train(False)
