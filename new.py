@@ -237,11 +237,11 @@ example_out = csv[csv["cid"]==6912034]["canonicalsmiles"].values[0]
 example_out = str_to_vector(example_out)
 import numpy as np
 
-eff = torchvision.models.efficientnet_v2_s(weights='DEFAULT')
-mynet = eff.features
-#swin = torchvision.models.swin_t(weights='DEFAULT')
+eff = torchvision.models.efficientnet_v2_l(weights='DEFAULT')
+#mynet = eff.features
+#swin = torchvision.models.swin_l(weights='DEFAULT')
 #swin.head = swin.avgpool = swin.flatten = torch.nn.Identity()
-#mynet = swin
+mynet = eff.features
 class ImageEncoder(torch.nn.Module):
   def __init__(self):
     super().__init__()
@@ -282,7 +282,7 @@ class Image2SMILES(torch.nn.Module):
     super().__init__()
     self.encoder = encoder
     self.decoder = decoder
-
+    self.decoder.encoder_dim=torch.nn.Identity()
   def forward(self, image, text_in, xmask):
     image_feature = self.encoder(image)
     out = self.decoder(text_in, image_feature, x_mask=xmask)
@@ -371,7 +371,7 @@ for i in transformer_.word_map.keys():
 import wandb
 print("Started")
 wandb.init(config={
-  "model" : "with encoder",
+  "model" : "swin",
   "image_size": 400,
         "lr": 0.0002,
         "gamma": 0.99987
@@ -511,7 +511,7 @@ for epoch in range(30):
         scheduler.step()
 
     if i%1000 == 10:
-        torch.save(model, f"eff_s_{epoch}_{i}.pt")
+        torch.save(model, f"eff_l_{epoch}_{i}.pt")
         for param in gen.parameters():
             param.requires_grad = False
         model.train(False)
