@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-04-04T01:56:06.669Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36" etag="0IPBTg9wE3nY2C_NHHK6" version="24.2.2" type="github">
+<mxfile host="app.diagrams.net" modified="2024-04-04T01:56:25.217Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36" etag="jGH-iRgSUJuSGu-QAMFh" version="24.2.2" type="github">
   <diagram name="Page-1" id="_oFdjuEBtsM09AQtFPXX">
-    <mxGraphModel dx="378" dy="234" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="51" dy="32" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -24,9 +24,12 @@
             <mxPoint x="426.634" y="259.74199999999996" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="QkcOzGts5u7EXQWEsCyk-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="QkcOzGts5u7EXQWEsCyk-10">
+        <mxCell id="QkcOzGts5u7EXQWEsCyk-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.032;entryY=1.178;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="QkcOzGts5u7EXQWEsCyk-10" target="QkcOzGts5u7EXQWEsCyk-50">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="510" y="260" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="500" y="260" />
+            </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="QkcOzGts5u7EXQWEsCyk-10" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;font-size: 10px;&quot;&gt;Flatten, Projection, and Dropout&lt;/span&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
