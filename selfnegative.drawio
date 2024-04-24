@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-04-24T22:44:51.618Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="2d4EY9C4arimhfC0N9fI" version="24.2.5" type="github">
+<mxfile host="app.diagrams.net" modified="2024-04-24T22:51:07.204Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="-qOoH9NyHRBEEKTj1sb7" version="24.2.5" type="github">
   <diagram name="Page-1" id="_6pJNJo3M6UCELkx7CFU">
     <mxGraphModel dx="768" dy="454" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -13,13 +13,13 @@
         <mxCell id="gpmFab7sYC8m6S0qKqCX-3" value="Correct SMILES" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="155" y="230" width="100" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="gpmFab7sYC8m6S0qKqCX-9" value="Mistakes 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="gpmFab7sYC8m6S0qKqCX-9" value="Mistake 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="290" y="230" width="70" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="gpmFab7sYC8m6S0qKqCX-10" value="Mistakes 2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="gpmFab7sYC8m6S0qKqCX-10" value="Mistake 2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="360" y="230" width="70" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="gpmFab7sYC8m6S0qKqCX-11" value="Mistakes 3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="gpmFab7sYC8m6S0qKqCX-11" value="Mistake 3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="430" y="230" width="70" height="30" as="geometry" />
         </mxCell>
         <mxCell id="gpmFab7sYC8m6S0qKqCX-13" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;Queue&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;horizontal=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
@@ -34,13 +34,13 @@
         <mxCell id="gpmFab7sYC8m6S0qKqCX-16" value="Correct SMILES" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="155" y="270" width="100" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="gpmFab7sYC8m6S0qKqCX-17" value="Mistakes 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="gpmFab7sYC8m6S0qKqCX-17" value="Mistake 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="290" y="270" width="70" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="gpmFab7sYC8m6S0qKqCX-18" value="Mistakes 2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="gpmFab7sYC8m6S0qKqCX-18" value="Mistake 2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="360" y="270" width="70" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="gpmFab7sYC8m6S0qKqCX-19" value="Mistakes 3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="gpmFab7sYC8m6S0qKqCX-19" value="Mistake 3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="430" y="270" width="70" height="30" as="geometry" />
         </mxCell>
         <mxCell id="gpmFab7sYC8m6S0qKqCX-20" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;Queue&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;horizontal=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
