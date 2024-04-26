@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-04-26T05:53:39.718Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="mrFHHh3U5SywH8qcfmTS" version="24.3.0" type="github">
+<mxfile host="app.diagrams.net" modified="2024-04-26T06:27:39.422Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="CLRvroLNCbNymQ8CJZgE" version="24.3.0" type="github">
   <diagram name="Page-1" id="hu3-Fn8BK387uAan2zAv">
     <mxGraphModel dx="1114" dy="659" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -7,7 +7,7 @@
         <mxCell id="jOKNKPnz_4e_HP_9XBLV-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="jOKNKPnz_4e_HP_9XBLV-1" target="jOKNKPnz_4e_HP_9XBLV-3">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="jOKNKPnz_4e_HP_9XBLV-1" value="Backbone&lt;div&gt;(Swin Transformer)&lt;/div&gt;" style="shape=trapezoid;perimeter=trapezoidPerimeter;whiteSpace=wrap;html=1;fixedSize=1;rotation=90;horizontal=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="jOKNKPnz_4e_HP_9XBLV-1" value="EfficientNet-V2-S" style="shape=trapezoid;perimeter=trapezoidPerimeter;whiteSpace=wrap;html=1;fixedSize=1;rotation=90;horizontal=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="160" y="250" width="122.5" height="77.5" as="geometry" />
         </mxCell>
         <mxCell id="jOKNKPnz_4e_HP_9XBLV-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="jOKNKPnz_4e_HP_9XBLV-3">
